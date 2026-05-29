@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { callClaude } from '../claude'
+import Paywall from '../Paywall'
+import { useProStatus } from '../useProStatus'
 
 function correlate(logs, metricA, metricB) {
   if (logs.length < 5) return null
@@ -80,6 +82,8 @@ export default function Insights({ user }) {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [activeTab, setActiveTab] = useState('overview')
+  const [showPaywall, setShowPaywall] = useState(false)
+  const { isPro } = useProStatus(user)
 
   useEffect(() => { fetchData() }, []) // eslint-disable-line
 
@@ -154,25 +158,33 @@ Return exactly 4 insights, one per line, no bullet points, no numbering, nothing
   const avgSoreness = logs.length > 0 ? (logs.reduce((s, l) => s + (l.soreness || 0), 0) / logs.length).toFixed(1) : null
 
   const tabs = [
-    { key: 'overview', label: 'Overview' },
-    { key: 'correlations', label: 'Correlations' },
-    { key: 'ai', label: 'AI Insights' },
+    { key: 'overview', label: 'Overview', locked: false },
+    { key: 'correlations', label: 'Correlations', locked: false },
+    { key: 'ai', label: 'AI Insights', locked: !isPro },
   ]
 
   return (
     <div className="screen">
+      {showPaywall && <Paywall feature="ai_insights" onClose={() => setShowPaywall(false)} />}
+
       <p style={{ color: '#f0f6ff', fontSize: '22px', fontWeight: '600', margin: '0 0 4px' }}>Insights</p>
       <p style={{ color: '#4a6080', fontSize: '13px', margin: '0 0 20px' }}>What your data actually says</p>
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
         {tabs.map(tab => (
-          <button key={tab.key} onClick={() => setActiveTab(tab.key)} style={{
+          <button key={tab.key} onClick={() => {
+            if (tab.locked) { setShowPaywall(true); return }
+            setActiveTab(tab.key)
+          }} style={{
             flex: 1, padding: '10px', borderRadius: '10px', border: 'none',
-            cursor: 'pointer', fontWeight: '600', fontSize: '13px',
+            cursor: 'pointer', fontWeight: '600', fontSize: '12px',
             backgroundColor: activeTab === tab.key ? '#0ea5e9' : '#0d1520',
             color: activeTab === tab.key ? 'white' : '#4a6080',
-            transition: 'all 0.2s'
-          }}>{tab.label}</button>
+            transition: 'all 0.2s',
+            position: 'relative'
+          }}>
+            {tab.label} {tab.locked && '🔒'}
+          </button>
         ))}
       </div>
 

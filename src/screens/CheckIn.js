@@ -66,6 +66,8 @@ export default function CheckIn({ user, onDone }) {
 
     if (!logs) return
 
+console.log('Today is:', today)
+console.log('Log dates:', logs.map(l => l.log_date))
     if (logs.some(l => l.log_date === today)) {
       setAlreadyDone(true)
     }
