@@ -4,6 +4,19 @@ import { callClaude } from '../claude'
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack']
 
+const analyzeFood = async (prompt, imageBase64) => {
+  const messages = imageBase64
+    ? [{ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
+        { type: 'text', text: prompt }
+      ]}]
+    : [{ role: 'user', content: prompt }]
+  const data = await callClaude(messages)
+  const text = data.content[0].text
+  const clean = text.replace(/```json|```/g, '').trim()
+  return JSON.parse(clean)
+}
+
 function MacroBar({ label, value, target, color }) {
   const pct = target ? Math.min((value / target) * 100, 100) : 0
   return (
@@ -87,26 +100,11 @@ export default function Nutrition({ user }) {
     fat: Math.round((bodyweight * 15 * 0.25) / 9),
   } : { calories: 2000, protein: 150, carbs: 225, fat: 65 }
 
-  const analyzeFood = async (prompt, imageBase64) => {
-    const messages = imageBase64
-      ? [{ role: 'user', content: [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
-          { type: 'text', text: prompt }
-        ]}]
-      : [{ role: 'user', content: prompt }]
-
-    const data = await callClaude(messages)
-    const text = data.content[0].text
-    const clean = text.replace(/```json|```/g, '').trim()
-    return JSON.parse(clean)
-  }
-
   const handlePhotoScan = async (e) => {
     const file = e.target.files[0]
     if (!file) return
     setScanning(true)
     setView('add')
-
     try {
       const base64 = await new Promise((res, rej) => {
         const reader = new FileReader()
@@ -114,7 +112,6 @@ export default function Nutrition({ user }) {
         reader.onerror = rej
         reader.readAsDataURL(file)
       })
-
       const result = await analyzeFood(
         `Analyze this food image and return ONLY a JSON object with these exact fields:
 {
@@ -132,7 +129,6 @@ export default function Nutrition({ user }) {
 Return only the JSON, no other text.`,
         base64
       )
-
       setScannedResult({ ...result, scan_method: 'photo' })
     } catch (err) {
       alert('Could not identify food. Try again or use text search.')
@@ -143,7 +139,6 @@ Return only the JSON, no other text.`,
   const handleTextSearch = async () => {
     if (!searchQuery.trim()) return
     setSearching(true)
-
     try {
       const result = await analyzeFood(
         `Return nutrition data for "${searchQuery}" as ONLY a JSON object with these exact fields:
@@ -161,7 +156,6 @@ Return only the JSON, no other text.`,
 }
 Return only the JSON, no other text.`
       )
-
       setScannedResult({ ...result, scan_method: 'text' })
     } catch (err) {
       alert('Could not find nutrition data. Try a more specific food name.')
