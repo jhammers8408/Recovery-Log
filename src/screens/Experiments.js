@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
+import { callClaude } from '../claude'
 
 const CATEGORIES = [
   { key: 'all', label: 'All' },
@@ -154,16 +155,10 @@ export default function Experiments({ user }) {
   const generateNewExperiments = async () => {
     setGenerating(true)
     try {
-      const existingTitles = library.map(e => e.title).join(', ')
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 2000,
-          messages: [{
-            role: 'user',
-            content: `You are a sports science researcher. Generate 3 new recovery experiments based on current sports science research. These should be different from: ${existingTitles}
+  const existingTitles = library.map(e => e.title).join(', ')
+  const data = await callClaude([{
+    role: 'user',
+    content: `You are a sports science researcher. Generate 3 new recovery experiments based on current sports science research. These should be different from: ${existingTitles}
 
 Return ONLY a JSON array with exactly 3 objects, each with these fields:
 [
@@ -178,28 +173,23 @@ Return ONLY a JSON array with exactly 3 objects, each with these fields:
   }
 ]
 Return only the JSON array, nothing else.`
-          }]
-        })
-      })
+  }])
 
-      const data = await response.json()
-      const text = data.content[0].text
-      const clean = text.replace(/```json|```/g, '').trim()
-      const experiments = JSON.parse(clean)
-
-      const weekOf = new Date().toISOString().split('T')[0]
-      for (const exp of experiments) {
-        await supabase.from('experiment_library').insert([{
-          ...exp,
-          is_ai_generated: true,
-          week_of: weekOf,
-        }])
-      }
-
-      fetchAll()
-    } catch (err) {
-      alert('Could not generate experiments right now.')
-    }
+  const text = data.content[0].text
+  const clean = text.replace(/```json|```/g, '').trim()
+  const experiments = JSON.parse(clean)
+  const weekOf = new Date().toISOString().split('T')[0]
+  for (const exp of experiments) {
+    await supabase.from('experiment_library').insert([{
+      ...exp,
+      is_ai_generated: true,
+      week_of: weekOf,
+    }])
+  }
+  fetchData()
+} catch (err) {
+  alert('Could not generate experiments right now.')
+}
     setGenerating(false)
   }
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
+import { callClaude } from '../claude'
 
 function correlate(logs, metricA, metricB) {
   if (logs.length < 5) return null
@@ -119,15 +120,9 @@ export default function Insights({ user }) {
     ).join('\n')
 
     try {
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: 'claude-sonnet-4-20250514',
-          max_tokens: 1000,
-          messages: [{
-            role: 'user',
-            content: `You are an elite sports recovery analyst. Analyze this athlete's data and give 4 highly specific, personalized insights about patterns in their recovery and performance. Be direct, specific with numbers, and actionable. Each insight should start with a bold finding then explain why it matters for this athlete specifically.
+      const data = await callClaude([{
+        role: 'user',
+        content: `You are an elite sports recovery analyst. Analyze this athlete's data and give 4 highly specific, personalized insights about patterns in their recovery and performance. Be direct, specific with numbers, and actionable. Each insight should start with a bold finding then explain why it matters for this athlete specifically.
 
 Recovery Data:
 ${summary}
@@ -136,10 +131,7 @@ Performance Data:
 ${perfSummary}
 
 Return exactly 4 insights, one per line, no bullet points, no numbering, nothing else.`
-          }]
-        })
-      })
-      const data = await response.json()
+      }])
       const text = data.content[0].text
       const lines = text.split('\n').filter(l => l.trim()).slice(0, 4)
       for (const line of lines) {

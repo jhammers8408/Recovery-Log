@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabase'
+import { callClaude } from '../claude'
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack']
 
@@ -87,22 +88,18 @@ export default function Nutrition({ user }) {
   } : { calories: 2000, protein: 150, carbs: 225, fat: 65 }
 
   const analyzeFood = async (prompt, method, imageBase64) => {
-    const content = imageBase64
-      ? [
-          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
-          { type: 'text', text: prompt }
-        ]
-      : prompt
+  const messages = imageBase64
+    ? [{ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
+        { type: 'text', text: prompt }
+      ]}]
+    : [{ role: 'user', content: prompt }]
 
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 1000,
-        messages: [{ role: 'user', content }]
-      })
-    })
+  const data = await callClaude(messages)
+  const text = data.content[0].text
+  const clean = text.replace(/```json|```/g, '').trim()
+  return JSON.parse(clean)
+}
 
     const data = await response.json()
     const text = data.content[0].text
