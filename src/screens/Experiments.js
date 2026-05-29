@@ -201,6 +201,7 @@ Return only the JSON array, nothing else.`
   }
 
   const startExperiment = async (exp) => {
+    console.log('isPro:', isPro, 'experimentCount:', experimentCount)
     if (!isPro && experimentCount >= 6) {
       setPaywallFeature('experiments')
       setShowPaywall(true)
