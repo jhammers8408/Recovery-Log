@@ -464,11 +464,26 @@ Return only the JSON, no other text.`
               ))}
             </div>
 
-            {!bodyweight && (
-              <div style={{ background: '#f59e0b15', border: '1px solid #f59e0b30', borderRadius: '10px', padding: '12px', marginBottom: '16px' }}>
-                <p style={{ color: '#f59e0b', fontSize: '13px', margin: '0' }}>Log your bodyweight in check-in for more accurate targets</p>
-              </div>
-            )}
+            <div style={{ background: '#0d1520', borderRadius: '12px', padding: '16px', marginBottom: '16px', border: '0.5px solid #1e2a3a' }}>
+  <p style={{ color: '#4a6080', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px' }}>Your Bodyweight</p>
+  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+    <input
+      type="number"
+      value={bodyweight || ''}
+      onChange={e => {
+        setBodyweight(e.target.value)
+        if (e.target.value && goalType) {
+          const suggested = calculateTargets(e.target.value, goalType)
+          setCustomTargets(suggested)
+        }
+      }}
+      placeholder="Enter your weight"
+      style={{ flex: 1, background: '#111820', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '12px', color: 'white', fontSize: '15px', outline: 'none' }}
+    />
+    <span style={{ color: '#4a6080', fontSize: '14px' }}>lbs</span>
+  </div>
+  <p style={{ color: '#4a6080', fontSize: '11px', margin: '8px 0 0' }}>Used to calculate personalized nutrition targets</p>
+</div>
           </div>
 
           <div style={{ background: '#0d1520', borderRadius: '16px', padding: '20px', marginBottom: '12px', border: '0.5px solid #1e2a3a' }}>
