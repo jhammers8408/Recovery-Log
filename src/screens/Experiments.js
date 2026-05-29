@@ -186,7 +186,7 @@ Return only the JSON array, nothing else.`
       week_of: weekOf,
     }])
   }
-  fetchData()
+  fetchAll()
 } catch (err) {
   alert('Could not generate experiments right now.')
 }
