@@ -34,6 +34,15 @@ function Auth() {
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
+  const handleGoogleLogin = async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: 'https://recovery-log-gamma.vercel.app'
+      }
+    })
+    if (error) toast(error.message, 'error')
+  }
 
   const inputStyle = {
     width: '100%', backgroundColor: '#111820', border: '1px solid #1e2a3a',
@@ -111,8 +120,9 @@ function Auth() {
   <div style={{ backgroundColor: '#111820', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', cursor: 'pointer' }}>
     <span style={{ fontSize: '16px' }}>🍎</span>
     <span style={{ color: '#8aa0b8', fontSize: '14px', fontWeight: '600' }}>Apple</span>
-  </div>
-  <div style={{ backgroundColor: '#111820', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+  <div
+  onClick={handleGoogleLogin}
+  style={{ backgroundColor: '#111820', border: '1px solid #1e2a3a', borderRadius: '12px', padding: '13px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
   <span style={{ color: '#8aa0b8', fontSize: '14px', fontWeight: '600' }}>Google</span>
 </div>
 </div>
