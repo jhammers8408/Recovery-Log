@@ -36,16 +36,22 @@ function Auth() {
   const [loading, setLoading] = useState(false)
 
   const handleGoogleLogin = async () => {
-    try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: 'https://recovery-log-gamma.vercel.app' }
-      })
-      if (error) toast(error.message, 'error')
-    } catch (err) {
-      toast(err.message, 'error')
-    }
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: 'https://recovery-log-gamma.vercel.app/',
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        }
+      }
+    })
+    if (error) toast(error.message, 'error')
+  } catch (err) {
+    toast(err.message, 'error')
   }
+}
 
   const inputStyle = {
     width: '100%', backgroundColor: '#111820', border: '1px solid #1e2a3a',
@@ -208,7 +214,7 @@ function AppContent() {
 
   useEffect(() => {
     supabase.auth.exchangeCodeForSession(window.location.href).catch(() => {})
-    
+
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       setAuthLoading(false)
