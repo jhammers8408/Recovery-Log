@@ -84,6 +84,7 @@ export default function Insights({ user }) {
   const [activeTab, setActiveTab] = useState('overview')
   const [showPaywall, setShowPaywall] = useState(false)
   const { isPro } = useProStatus(user)
+  console.log('isPro:', isPro)
 
   useEffect(() => { fetchData() }, []) // eslint-disable-line
 

@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { callClaude } from '../claude'
+import Paywall from '../Paywall'
+import { useProStatus } from '../useProStatus'
 
 const CATEGORIES = [
   { key: 'all', label: 'All' },
@@ -11,7 +13,7 @@ const CATEGORIES = [
   { key: 'recovery', label: 'Recovery' },
 ]
 
-function ExperimentCard({ exp, onStart, isActive }) {
+function ExperimentCard({ exp, onStart, isActive, isLocked }) {
   const [hovered, setHovered] = useState(false)
 
   return (
@@ -33,7 +35,7 @@ function ExperimentCard({ exp, onStart, isActive }) {
           <span style={{ fontSize: '28px' }}>{exp.icon}</span>
           <div>
             <p style={{ color: '#f0f6ff', fontSize: '15px', fontWeight: '600', margin: '0 0 3px' }}>{exp.title}</p>
-            <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexWrap: 'wrap' }}>
               <span style={{ background: '#0ea5e915', border: '1px solid #0ea5e930', borderRadius: '6px', padding: '2px 8px', fontSize: '10px', color: '#0ea5e9', textTransform: 'capitalize' }}>{exp.category}</span>
               <span style={{ color: '#4a6080', fontSize: '11px' }}>{exp.duration_days} days</span>
               {exp.is_ai_generated && (
@@ -73,13 +75,13 @@ function ExperimentCard({ exp, onStart, isActive }) {
         disabled={isActive}
         style={{
           width: '100%', padding: '12px',
-          background: isActive ? '#1e2a3a' : '#0ea5e9',
-          color: isActive ? '#4a6080' : 'white',
+          background: isActive ? '#1e2a3a' : isLocked ? '#1e2a3a' : '#0ea5e9',
+          color: isActive || isLocked ? '#4a6080' : 'white',
           border: 'none', borderRadius: '12px',
           fontSize: '14px', fontWeight: '600',
           cursor: isActive ? 'not-allowed' : 'pointer'
         }}>
-        {isActive ? 'Already Active' : 'Start Experiment'}
+        {isActive ? 'Already Active' : isLocked ? '🔒 Pro Required' : 'Start Experiment'}
       </button>
     </div>
   )
@@ -132,7 +134,9 @@ export default function Experiments({ user }) {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
   const [results, setResults] = useState(null)
-  const [starting, setStarting] = useState(false)
+  const [showPaywall, setShowPaywall] = useState(false)
+  const [paywallFeature, setPaywallFeature] = useState('experiments')
+  const { isPro, experimentCount, aiGenerationCount } = useProStatus(user)
 
   useEffect(() => {
     fetchAll()
@@ -143,7 +147,6 @@ export default function Experiments({ user }) {
       supabase.from('experiment_library').select('*').order('is_featured', { ascending: false }).order('created_at', { ascending: false }),
       supabase.from('experiments').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
     ])
-
     if (libData) setLibrary(libData)
     if (expData) {
       setActiveExperiments(expData.filter(e => e.status === 'active'))
@@ -153,12 +156,17 @@ export default function Experiments({ user }) {
   }
 
   const generateNewExperiments = async () => {
+    if (!isPro && aiGenerationCount >= 3) {
+      setPaywallFeature('ai_experiments')
+      setShowPaywall(true)
+      return
+    }
     setGenerating(true)
     try {
-  const existingTitles = library.map(e => e.title).join(', ')
-  const data = await callClaude([{
-    role: 'user',
-    content: `You are a sports science researcher. Generate 3 new recovery experiments based on current sports science research. These should be different from: ${existingTitles}
+      const existingTitles = library.map(e => e.title).join(', ')
+      const data = await callClaude([{
+        role: 'user',
+        content: `You are a sports science researcher. Generate 3 new recovery experiments based on current sports science research. These should be different from: ${existingTitles}
 
 Return ONLY a JSON array with exactly 3 objects, each with these fields:
 [
@@ -173,28 +181,31 @@ Return ONLY a JSON array with exactly 3 objects, each with these fields:
   }
 ]
 Return only the JSON array, nothing else.`
-  }])
-
-  const text = data.content[0].text
-  const clean = text.replace(/```json|```/g, '').trim()
-  const experiments = JSON.parse(clean)
-  const weekOf = new Date().toISOString().split('T')[0]
-  for (const exp of experiments) {
-    await supabase.from('experiment_library').insert([{
-      ...exp,
-      is_ai_generated: true,
-      week_of: weekOf,
-    }])
-  }
-  fetchAll()
-} catch (err) {
-  alert('Could not generate experiments right now.')
-}
+      }])
+      const text = data.content[0].text
+      const clean = text.replace(/```json|```/g, '').trim()
+      const experiments = JSON.parse(clean)
+      const weekOf = new Date().toISOString().split('T')[0]
+      for (const exp of experiments) {
+        await supabase.from('experiment_library').insert([{
+          ...exp,
+          is_ai_generated: true,
+          week_of: weekOf,
+        }])
+      }
+      fetchAll()
+    } catch (err) {
+      alert('Could not generate experiments right now.')
+    }
     setGenerating(false)
   }
 
   const startExperiment = async (exp) => {
-    setStarting(true)
+    if (!isPro && experimentCount >= 6) {
+      setPaywallFeature('experiments')
+      setShowPaywall(true)
+      return
+    }
     const today = new Date()
     const controlStart = today.toISOString().split('T')[0]
     const controlEnd = new Date(today)
@@ -223,7 +234,6 @@ Return only the JSON array, nothing else.`
     } else {
       alert('Something went wrong starting the experiment.')
     }
-    setStarting(false)
   }
 
   const completeExperiment = async (exp) => {
@@ -253,6 +263,8 @@ Return only the JSON array, nothing else.`
   const featured = library.find(e => e.is_featured)
   const filtered = library.filter(e => category === 'all' || e.category === category)
   const activeVariables = activeExperiments.map(e => e.variable || e.title)
+  const isExperimentsLocked = !isPro && experimentCount >= 6
+  const isAiLocked = !isPro && aiGenerationCount >= 3
 
   const tabs = [
     { key: 'browse', label: 'Browse' },
@@ -262,8 +274,13 @@ Return only the JSON array, nothing else.`
 
   return (
     <div className="screen">
+      {showPaywall && <Paywall feature={paywallFeature} onClose={() => setShowPaywall(false)} />}
+
       <p style={{ color: '#f0f6ff', fontSize: '22px', fontWeight: '600', margin: '0 0 4px' }}>Experiments Lab</p>
-      <p style={{ color: '#4a6080', fontSize: '13px', margin: '0 0 20px' }}>Run controlled tests to find what works for your body</p>
+      <p style={{ color: '#4a6080', fontSize: '13px', margin: '0 0 20px' }}>
+        Run controlled tests to find what works for your body
+        {!isPro && <span style={{ color: '#f59e0b', marginLeft: '8px' }}>· {Math.max(0, 6 - experimentCount)} free experiments left</span>}
+      </p>
 
       <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
         {tabs.map(tab => (
@@ -310,7 +327,6 @@ Return only the JSON array, nothing else.`
 
       {view === 'browse' && (
         <div>
-          {/* Featured Experiment */}
           {featured && (
             <div style={{ background: 'linear-gradient(135deg, #0ea5e915, #9b59b615)', borderRadius: '16px', padding: '18px', marginBottom: '16px', border: '0.5px solid #0ea5e940' }}>
               <p style={{ color: '#f59e0b', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px', fontWeight: '700' }}>Featured this week</p>
@@ -324,21 +340,19 @@ Return only the JSON array, nothing else.`
               <button
                 onClick={() => startExperiment(featured)}
                 disabled={activeVariables.includes(featured.variable)}
-                style={{ width: '100%', padding: '12px', background: activeVariables.includes(featured.variable) ? '#1e2a3a' : '#0ea5e9', color: activeVariables.includes(featured.variable) ? '#4a6080' : 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: activeVariables.includes(featured.variable) ? 'not-allowed' : 'pointer' }}>
-                {activeVariables.includes(featured.variable) ? 'Already Active' : 'Start Featured Experiment'}
+                style={{ width: '100%', padding: '12px', background: activeVariables.includes(featured.variable) ? '#1e2a3a' : isExperimentsLocked ? '#1e2a3a' : '#0ea5e9', color: activeVariables.includes(featured.variable) || isExperimentsLocked ? '#4a6080' : 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: activeVariables.includes(featured.variable) ? 'not-allowed' : 'pointer' }}>
+                {activeVariables.includes(featured.variable) ? 'Already Active' : isExperimentsLocked ? '🔒 Pro Required' : 'Start Featured Experiment'}
               </button>
             </div>
           )}
 
-          {/* Generate New Button */}
           <button
             onClick={generateNewExperiments}
             disabled={generating}
-            style={{ width: '100%', padding: '13px', background: generating ? '#1e2a3a' : '#9b59b615', border: '1px solid #9b59b630', borderRadius: '12px', color: generating ? '#4a6080' : '#9b59b6', fontSize: '14px', fontWeight: '600', cursor: generating ? 'not-allowed' : 'pointer', marginBottom: '16px' }}>
-            {generating ? 'Generating new experiments...' : 'Generate New Experiments with AI'}
+            style={{ width: '100%', padding: '13px', background: generating ? '#1e2a3a' : '#9b59b615', border: `1px solid ${isAiLocked ? '#f59e0b30' : '#9b59b630'}`, borderRadius: '12px', color: generating ? '#4a6080' : isAiLocked ? '#f59e0b' : '#9b59b6', fontSize: '14px', fontWeight: '600', cursor: generating ? 'not-allowed' : 'pointer', marginBottom: '16px' }}>
+            {generating ? 'Generating new experiments...' : isAiLocked ? '🔒 Upgrade to Generate More Experiments' : 'Generate New Experiments with AI'}
           </button>
 
-          {/* Category Filter */}
           <div style={{ display: 'flex', gap: '6px', marginBottom: '16px', overflowX: 'auto', paddingBottom: '4px' }}>
             {CATEGORIES.map(cat => (
               <button key={cat.key} onClick={() => setCategory(cat.key)} style={{ padding: '7px 14px', borderRadius: '20px', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '12px', whiteSpace: 'nowrap', backgroundColor: category === cat.key ? '#0ea5e9' : '#0d1520', color: category === cat.key ? 'white' : '#4a6080', transition: 'all 0.2s' }}>{cat.label}</button>
@@ -348,8 +362,14 @@ Return only the JSON array, nothing else.`
           {loading ? (
             <p style={{ color: '#4a6080', textAlign: 'center', padding: '40px' }}>Loading experiments...</p>
           ) : (
-            filtered.filter(e => !e.is_featured).map(exp => (
-              <ExperimentCard key={exp.id} exp={exp} onStart={startExperiment} isActive={activeVariables.includes(exp.variable)} />
+            filtered.filter(e => !e.is_featured).map((exp, i) => (
+              <ExperimentCard
+                key={exp.id}
+                exp={exp}
+                onStart={startExperiment}
+                isActive={activeVariables.includes(exp.variable)}
+                isLocked={isExperimentsLocked}
+              />
             ))
           )}
         </div>
