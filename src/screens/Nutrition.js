@@ -11,31 +11,30 @@ const GOALS = [
   { key: 'improve_performance', label: 'Performance', icon: '⚡', description: 'Fuel for athletic output' },
 ]
 
-const calculateTargets = (bodyweight, goalType) => {
+const calculateTargets = (bodyweight, height, goalType) => {
   const bw = parseFloat(bodyweight) || 160
-  const multipliers = {
-    lose_weight: 12,
-    maintain: 15,
-    build_muscle: 18,
-    improve_performance: 16,
+  const ht = parseFloat(height) || 70
+  const weightKg = bw * 0.453592
+  const heightCm = ht * 2.54
+  const bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * 25) + 5
+  const tdee = Math.round(bmr * 1.55)
+  const calorieAdjust = {
+    lose_weight: -500,
+    maintain: 0,
+    build_muscle: 300,
+    improve_performance: 200,
   }
+  const calories = tdee + (calorieAdjust[goalType] || 0)
   const proteinMultipliers = {
     lose_weight: 1.0,
     maintain: 0.8,
     build_muscle: 1.2,
     improve_performance: 1.0,
   }
-  const carbPct = {
-    lose_weight: 0.30,
-    maintain: 0.45,
-    build_muscle: 0.45,
-    improve_performance: 0.50,
-  }
-  const calories = Math.round(bw * (multipliers[goalType] || 15))
   const protein = Math.round(bw * (proteinMultipliers[goalType] || 0.8))
-  const carbs = Math.round((calories * (carbPct[goalType] || 0.45)) / 4)
   const fat = Math.round((calories * 0.25) / 9)
-  return { calories, protein, carbs, fat, fiber: 30, sugar: 50, sodium: 2300 }
+  const carbs = Math.round((calories - (protein * 4) - (fat * 9)) / 4)
+  return { calories, protein, carbs: Math.max(carbs, 50), fat, fiber: 30, sugar: 50, sodium: 2300 }
 }
 
 const analyzeFood = async (prompt, imageBase64) => {
@@ -93,11 +92,11 @@ export default function Nutrition({ user }) {
   const [scannedResult, setScannedResult] = useState(null)
   const [selectedMeal, setSelectedMeal] = useState('breakfast')
   const [bodyweight, setBodyweight] = useState(null)
+  const [height, setHeight] = useState(null)
   const [goals, setGoals] = useState(null)
   const [goalType, setGoalType] = useState('maintain')
   const [customTargets, setCustomTargets] = useState(null)
   const [savingGoals, setSavingGoals] = useState(false)
-  const [suggestedTargets, setSuggestedTargets] = useState(null)
   const fileRef = useRef()
 
   const today = new Date().toLocaleDateString('en-CA')
@@ -110,12 +109,12 @@ export default function Nutrition({ user }) {
       supabase.from('daily_logs').select('bodyweight').eq('user_id', user.id).order('log_date', { ascending: false }).limit(1),
       supabase.from('nutrition_goals').select('*').eq('user_id', user.id).single(),
     ])
-
     if (foodData) setFoods(foodData)
     if (logData && logData[0]?.bodyweight) setBodyweight(logData[0].bodyweight)
     if (goalData) {
       setGoals(goalData)
       setGoalType(goalData.goal_type || 'maintain')
+      if (goalData.height) setHeight(goalData.height)
       setCustomTargets({
         calories: goalData.calories,
         protein: goalData.protein,
@@ -129,7 +128,7 @@ export default function Nutrition({ user }) {
     setLoading(false)
   }
 
-  const targets = customTargets || calculateTargets(bodyweight, goalType)
+  const targets = customTargets || calculateTargets(bodyweight, height, goalType)
 
   const totalNutrition = foods.reduce((acc, food) => ({
     calories: acc.calories + (food.calories || 0),
@@ -143,8 +142,7 @@ export default function Nutrition({ user }) {
 
   const handleGoalSelect = (key) => {
     setGoalType(key)
-    const suggested = calculateTargets(bodyweight, key)
-    setSuggestedTargets(suggested)
+    const suggested = calculateTargets(bodyweight, height, key)
     setCustomTargets(suggested)
   }
 
@@ -154,19 +152,15 @@ export default function Nutrition({ user }) {
 
   const saveGoals = async () => {
     setSavingGoals(true)
-    const upsertData = {
+    const { error } = await supabase.from('nutrition_goals').upsert({
       user_id: user.id,
       goal_type: goalType,
+      height: height ? parseFloat(height) : null,
       ...customTargets,
       updated_at: new Date().toISOString(),
-    }
-
-    const { error } = await supabase
-      .from('nutrition_goals')
-      .upsert(upsertData, { onConflict: 'user_id' })
-
+    }, { onConflict: 'user_id' })
     if (!error) {
-      setGoals(upsertData)
+      setGoals({ goal_type: goalType, ...customTargets })
       setView('log')
     } else {
       alert('Something went wrong saving your goals.')
@@ -267,7 +261,6 @@ Return only the JSON, no other text.`
 
   const caloriePct = Math.min((totalNutrition.calories / targets.calories) * 100, 100)
   const calorieColor = caloriePct > 100 ? '#e74c3c' : caloriePct > 85 ? '#f59e0b' : '#2ecc71'
-
   const currentGoal = GOALS.find(g => g.key === goalType)
 
   return (
@@ -288,7 +281,6 @@ Return only the JSON, no other text.`
 
       {view === 'log' && (
         <div>
-          {/* Current Goal Badge */}
           {currentGoal && (
             <div onClick={() => setView('goals')} style={{ background: '#0d1520', borderRadius: '12px', padding: '12px 16px', marginBottom: '12px', border: '0.5px solid #0ea5e930', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -463,33 +455,54 @@ Return only the JSON, no other text.`
                 </div>
               ))}
             </div>
+          </div>
 
-            <div style={{ background: '#0d1520', borderRadius: '12px', padding: '16px', marginBottom: '16px', border: '0.5px solid #1e2a3a' }}>
-  <p style={{ color: '#4a6080', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px' }}>Your Bodyweight</p>
-  <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-    <input
-      type="number"
-      value={bodyweight || ''}
-      onChange={e => {
-        setBodyweight(e.target.value)
-        if (e.target.value && goalType) {
-          const suggested = calculateTargets(e.target.value, goalType)
-          setCustomTargets(suggested)
-        }
-      }}
-      placeholder="Enter your weight"
-      style={{ flex: 1, background: '#111820', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '12px', color: 'white', fontSize: '15px', outline: 'none' }}
-    />
-    <span style={{ color: '#4a6080', fontSize: '14px' }}>lbs</span>
-  </div>
-  <p style={{ color: '#4a6080', fontSize: '11px', margin: '8px 0 0' }}>Used to calculate personalized nutrition targets</p>
-</div>
+          <div style={{ background: '#0d1520', borderRadius: '16px', padding: '20px', marginBottom: '12px', border: '0.5px solid #1e2a3a' }}>
+            <p style={{ color: '#4a6080', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 14px' }}>Your Stats</p>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <p style={{ color: '#4a6080', fontSize: '12px', margin: '0 0 6px' }}>Bodyweight</p>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    value={bodyweight || ''}
+                    onChange={e => {
+                      setBodyweight(e.target.value)
+                      if (e.target.value && goalType) {
+                        setCustomTargets(calculateTargets(e.target.value, height, goalType))
+                      }
+                    }}
+                    placeholder="e.g. 175"
+                    style={{ flex: 1, background: '#111820', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '12px', color: 'white', fontSize: '15px', outline: 'none' }}
+                  />
+                  <span style={{ color: '#4a6080', fontSize: '13px' }}>lbs</span>
+                </div>
+              </div>
+              <div>
+                <p style={{ color: '#4a6080', fontSize: '12px', margin: '0 0 6px' }}>Height</p>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <input
+                    type="number"
+                    value={height || ''}
+                    onChange={e => {
+                      setHeight(e.target.value)
+                      if (e.target.value && bodyweight && goalType) {
+                        setCustomTargets(calculateTargets(bodyweight, e.target.value, goalType))
+                      }
+                    }}
+                    placeholder="e.g. 72"
+                    style={{ flex: 1, background: '#111820', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '12px', color: 'white', fontSize: '15px', outline: 'none' }}
+                  />
+                  <span style={{ color: '#4a6080', fontSize: '13px' }}>in</span>
+                </div>
+              </div>
+            </div>
+            <p style={{ color: '#4a6080', fontSize: '11px', margin: '12px 0 0' }}>Used to calculate personalized targets using the Mifflin-St Jeor formula</p>
           </div>
 
           <div style={{ background: '#0d1520', borderRadius: '16px', padding: '20px', marginBottom: '12px', border: '0.5px solid #1e2a3a' }}>
             <p style={{ color: '#4a6080', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 6px' }}>Daily Targets</p>
-            <p style={{ color: '#4a6080', fontSize: '12px', margin: '0 0 16px' }}>AI suggested based on your goal — adjust as needed</p>
-
+            <p style={{ color: '#4a6080', fontSize: '12px', margin: '0 0 16px' }}>AI suggested — adjust as needed</p>
             {[
               { key: 'calories', label: 'Calories', unit: 'kcal', color: '#f0f6ff' },
               { key: 'protein', label: 'Protein', unit: 'g', color: '#0ea5e9' },
@@ -508,16 +521,13 @@ Return only the JSON, no other text.`
                     onChange={e => handleTargetChange(item.key, e.target.value)}
                     style={{ width: '80px', background: '#111820', border: '1px solid #1e2a3a', borderRadius: '8px', padding: '8px', color: item.color, fontSize: '14px', fontWeight: '600', outline: 'none', textAlign: 'right' }}
                   />
-                  <span style={{ color: '#4a6080', fontSize: '12px', minWidth: '24px' }}>{item.unit}</span>
+                  <span style={{ color: '#4a6080', fontSize: '12px', minWidth: '28px' }}>{item.unit}</span>
                 </div>
               </div>
             ))}
           </div>
 
-          <button
-            onClick={saveGoals}
-            disabled={savingGoals}
-            style={{ width: '100%', padding: '16px', background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: '700', cursor: savingGoals ? 'not-allowed' : 'pointer', opacity: savingGoals ? 0.7 : 1 }}>
+          <button onClick={saveGoals} disabled={savingGoals} style={{ width: '100%', padding: '16px', background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: '700', cursor: savingGoals ? 'not-allowed' : 'pointer', opacity: savingGoals ? 0.7 : 1 }}>
             {savingGoals ? 'Saving...' : 'Save Goals'}
           </button>
         </div>
