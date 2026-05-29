@@ -1,38 +1,243 @@
-.App {
-  text-align: center;
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
+body {
+  background-color: #0a0a0a;
+  color: #ffffff;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+  max-width: 430px;
+  margin: 0 auto;
   min-height: 100vh;
+  position: relative;
+}
+
+.app {
+  padding-bottom: 80px;
+}
+
+.screen {
+  padding: 20px 16px;
+}
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 430px;
+  background: #111111;
+  border-top: 1px solid #222;
+  display: flex;
+  justify-content: space-around;
+  padding: 8px 0 16px;
+  z-index: 100;
+}
+
+.nav-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
+  gap: 2px;
+  cursor: pointer;
+  padding: 3px 8px;
+  border-radius: 10px;
+  transition: background 0.15s;
+}
+
+.nav-item:hover {
+  background: #0ea5e915;
+}
+
+.nav-item:hover .nav-label {
+  color: #0ea5e9;
+}
+
+.nav-item:hover .nav-icon {
+  transform: scale(1.1);
+}
+
+.nav-item.active .nav-label {
+  color: #0ea5e9;
+}
+
+.nav-icon {
+  font-size: 19px;
+  transition: transform 0.15s;
+}
+
+.nav-label {
+  font-size: 9px;
+  color: #555;
+}
+
+.nav-item:hover {
+  background: #0ea5e915;
+}
+
+.nav-item:hover .nav-label {
+  color: #0ea5e9;
+}
+
+.nav-item:hover .nav-icon {
+  transform: scale(1.1);
+  transition: transform 0.15s;
+}
+
+.nav-item.active .nav-label { 
+  color: #0ea5e9; 
+}
+
+.nav-icon { 
+  font-size: 22px;
+  transition: transform 0.15s;
+}
+
+.nav-icon { font-size: 22px; }
+
+.nav-label {
+  font-size: 10px;
+  color: #555;
+}
+
+.nav-item.active .nav-label { color: #6366f1; }
+
+.card {
+  background: #161616;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 12px;
+  border: 1px solid #222;
+}
+
+.btn-primary {
+  width: 100%;
+  padding: 16px;
+  background: #6366f1;
   color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
 }
 
-.App-link {
-  color: #61dafb;
+.btn-secondary {
+  width: 100%;
+  padding: 14px;
+  background: #1a1a1a;
+  color: #aaa;
+  border: 1px solid #222;
+  border-radius: 14px;
+  font-size: 15px;
+  cursor: pointer;
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
+.section-title {
+  font-size: 22px;
+  font-weight: 700;
+  margin-bottom: 4px;
+}
+
+.section-sub {
+  font-size: 14px;
+  color: #555;
+  margin-bottom: 20px;
+}
+
+.slider-row {
+  margin-bottom: 20px;
+}
+
+.slider-label {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.slider-name {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.slider-value {
+  font-size: 15px;
+  font-weight: 700;
+  color: #6366f1;
+}
+
+input[type="range"] {
+  width: 100%;
+  height: 6px;
+  border-radius: 3px;
+  accent-color: #6366f1;
+  cursor: pointer;
+}
+
+.chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.chip {
+  padding: 8px 14px;
+  border-radius: 20px;
+  border: 1px solid #222;
+  background: #1a1a1a;
+  color: #aaa;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.chip.selected {
+  background: #6366f133;
+  border-color: #6366f1;
+  color: #6366f1;
+  font-weight: 600;
+}
+
+.insight-card {
+  background: linear-gradient(135deg, #6366f120, #8b5cf620);
+  border: 1px solid #6366f133;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 12px;
+}
+
+.recovery-score {
+  font-size: 72px;
+  font-weight: 800;
+  text-align: center;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.card:hover {
+  border-color: #0ea5e940;
+  transition: border-color 0.15s;
+}
+
+.btn-primary:hover {
+  background: #38bdf8;
+  transition: background 0.2s;
+}
+
+.btn-secondary:hover {
+  border-color: #0ea5e940;
+  color: #f0f6ff;
+  transition: all 0.15s;
+}
+
+.chip:hover {
+  border-color: #0ea5e940;
+  color: #8aa0b8;
+  transition: all 0.15s;
 }
