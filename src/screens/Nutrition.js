@@ -459,42 +459,36 @@ Return only the JSON, no other text.`
 
           <div style={{ background: '#0d1520', borderRadius: '16px', padding: '20px', marginBottom: '12px', border: '0.5px solid #1e2a3a' }}>
             <p style={{ color: '#4a6080', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 14px' }}>Your Stats</p>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <p style={{ color: '#4a6080', fontSize: '12px', margin: '0 0 6px' }}>Bodyweight</p>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input
-                    type="number"
-                    value={bodyweight || ''}
-                    onChange={e => {
-                      setBodyweight(e.target.value)
-                      if (e.target.value && goalType) {
-                        setCustomTargets(calculateTargets(e.target.value, height, goalType))
-                      }
-                    }}
-                    placeholder="e.g. 175"
-                    style={{ flex: 1, background: '#111820', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '12px', color: 'white', fontSize: '15px', outline: 'none' }}
-                  />
-                  <span style={{ color: '#4a6080', fontSize: '13px' }}>lbs</span>
-                </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <div style={{ flex: 1 }}>
+                <p style={{ color: '#4a6080', fontSize: '12px', margin: '0 0 6px' }}>Weight (lbs)</p>
+                <input
+                  type="number"
+                  value={bodyweight || ''}
+                  onChange={e => {
+                    setBodyweight(e.target.value)
+                    if (e.target.value && goalType) {
+                      setCustomTargets(calculateTargets(e.target.value, height, goalType))
+                    }
+                  }}
+                  placeholder="175"
+                  style={{ width: '100%', background: '#111820', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '10px', color: 'white', fontSize: '14px', outline: 'none' }}
+                />
               </div>
-              <div>
-                <p style={{ color: '#4a6080', fontSize: '12px', margin: '0 0 6px' }}>Height</p>
-                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                  <input
-                    type="number"
-                    value={height || ''}
-                    onChange={e => {
-                      setHeight(e.target.value)
-                      if (e.target.value && bodyweight && goalType) {
-                        setCustomTargets(calculateTargets(bodyweight, e.target.value, goalType))
-                      }
-                    }}
-                    placeholder="e.g. 72"
-                    style={{ flex: 1, background: '#111820', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '12px', color: 'white', fontSize: '15px', outline: 'none' }}
-                  />
-                  <span style={{ color: '#4a6080', fontSize: '13px' }}>in</span>
-                </div>
+              <div style={{ flex: 1 }}>
+                <p style={{ color: '#4a6080', fontSize: '12px', margin: '0 0 6px' }}>Height (in)</p>
+                <input
+                  type="number"
+                  value={height || ''}
+                  onChange={e => {
+                    setHeight(e.target.value)
+                    if (e.target.value && bodyweight && goalType) {
+                      setCustomTargets(calculateTargets(bodyweight, e.target.value, goalType))
+                    }
+                  }}
+                  placeholder="72"
+                  style={{ width: '100%', background: '#111820', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '10px', color: 'white', fontSize: '14px', outline: 'none' }}
+                />
               </div>
             </div>
             <p style={{ color: '#4a6080', fontSize: '11px', margin: '12px 0 0' }}>Used to calculate personalized targets using the Mifflin-St Jeor formula</p>
