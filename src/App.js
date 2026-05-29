@@ -211,9 +211,15 @@ function AppContent() {
       setUser(session?.user ?? null)
       setAuthLoading(false)
     })
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_e, session) => {
-      setUser(session?.user ?? null)
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_IN') {
+        setUser(session?.user ?? null)
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null)
+      }
     })
+
     return () => subscription.unsubscribe()
   }, [])
 
