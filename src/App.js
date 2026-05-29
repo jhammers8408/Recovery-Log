@@ -207,6 +207,8 @@ function AppContent() {
   const [showNotificationSetup, setShowNotificationSetup] = useState(false)
 
   useEffect(() => {
+    supabase.auth.exchangeCodeForSession(window.location.href).catch(() => {})
+    
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       setAuthLoading(false)
