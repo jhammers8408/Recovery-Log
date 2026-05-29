@@ -87,21 +87,15 @@ export default function Nutrition({ user }) {
     fat: Math.round((bodyweight * 15 * 0.25) / 9),
   } : { calories: 2000, protein: 150, carbs: 225, fat: 65 }
 
-  const analyzeFood = async (prompt, method, imageBase64) => {
-  const messages = imageBase64
-    ? [{ role: 'user', content: [
-        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
-        { type: 'text', text: prompt }
-      ]}]
-    : [{ role: 'user', content: prompt }]
+  const analyzeFood = async (prompt, imageBase64) => {
+    const messages = imageBase64
+      ? [{ role: 'user', content: [
+          { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
+          { type: 'text', text: prompt }
+        ]}]
+      : [{ role: 'user', content: prompt }]
 
-  const data = await callClaude(messages)
-  const text = data.content[0].text
-  const clean = text.replace(/```json|```/g, '').trim()
-  return JSON.parse(clean)
-}
-
-    const data = await response.json()
+    const data = await callClaude(messages)
     const text = data.content[0].text
     const clean = text.replace(/```json|```/g, '').trim()
     return JSON.parse(clean)
@@ -136,7 +130,6 @@ export default function Nutrition({ user }) {
   "vitamins": { "vitamin_a": "percent daily value", "vitamin_c": "percent daily value", "vitamin_d": "percent daily value", "calcium": "percent daily value", "iron": "percent daily value" }
 }
 Return only the JSON, no other text.`,
-        'photo',
         base64
       )
 
@@ -166,8 +159,7 @@ Return only the JSON, no other text.`,
   "sodium": number in mg,
   "vitamins": { "vitamin_a": "percent daily value", "vitamin_c": "percent daily value", "vitamin_d": "percent daily value", "calcium": "percent daily value", "iron": "percent daily value" }
 }
-Return only the JSON, no other text.`,
-        'text'
+Return only the JSON, no other text.`
       )
 
       setScannedResult({ ...result, scan_method: 'text' })
@@ -225,7 +217,6 @@ Return only the JSON, no other text.`,
 
       {view === 'log' && (
         <div>
-          {/* Calorie Ring Summary */}
           <div style={{ background: '#0d1520', borderRadius: '16px', padding: '20px', marginBottom: '12px', border: '0.5px solid #1e2a3a' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
@@ -241,7 +232,6 @@ Return only the JSON, no other text.`,
                 <p style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%,-50%)', color: '#f0f6ff', fontSize: '13px', fontWeight: '700', margin: '0' }}>{Math.round(caloriePct)}%</p>
               </div>
             </div>
-
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px' }}>
               {[
                 { label: 'Protein', value: totalNutrition.protein, target: targets.protein, color: '#0ea5e9' },
@@ -257,12 +247,10 @@ Return only the JSON, no other text.`,
             </div>
           </div>
 
-          {/* Quick Add Button */}
           <button onClick={() => setView('add')} style={{ width: '100%', padding: '14px', background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '14px', fontSize: '15px', fontWeight: '600', cursor: 'pointer', marginBottom: '16px' }}>
             + Add Food
           </button>
 
-          {/* Meal Groups */}
           {loading ? (
             <p style={{ color: '#4a6080', textAlign: 'center', padding: '20px' }}>Loading...</p>
           ) : foods.length === 0 ? (
@@ -286,7 +274,6 @@ Return only the JSON, no other text.`,
 
       {view === 'add' && (
         <div>
-          {/* Meal Type Selector */}
           <div style={{ background: '#0d1520', borderRadius: '14px', padding: '16px', marginBottom: '12px', border: '0.5px solid #1e2a3a' }}>
             <p style={{ color: '#4a6080', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 10px' }}>Meal</p>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -298,7 +285,6 @@ Return only the JSON, no other text.`,
             </div>
           </div>
 
-          {/* Photo Scan */}
           <div style={{ background: '#0d1520', borderRadius: '14px', padding: '16px', marginBottom: '12px', border: '0.5px solid #1e2a3a' }}>
             <p style={{ color: '#4a6080', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>Scan Food Photo</p>
             <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoScan} style={{ display: 'none' }} />
@@ -307,7 +293,6 @@ Return only the JSON, no other text.`,
             </button>
           </div>
 
-          {/* Text Search */}
           <div style={{ background: '#0d1520', borderRadius: '14px', padding: '16px', marginBottom: '12px', border: '0.5px solid #1e2a3a' }}>
             <p style={{ color: '#4a6080', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>Search Food</p>
             <div style={{ display: 'flex', gap: '8px' }}>
@@ -325,7 +310,6 @@ Return only the JSON, no other text.`,
             </div>
           </div>
 
-          {/* Scanned Result */}
           {scannedResult && (
             <div style={{ background: '#0d1520', borderRadius: '14px', padding: '16px', marginBottom: '12px', border: '0.5px solid #2ecc7140' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
