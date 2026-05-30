@@ -3,6 +3,7 @@ import { supabase } from '../supabase'
 import { callClaude } from '../claude'
 import Paywall from '../Paywall'
 import { useProStatus } from '../useProStatus'
+import ProductRecommendation from '../ProductRecommendation'
 
 function correlate(logs, metricA, metricB) {
   if (logs.length < 5) return null
@@ -326,6 +327,13 @@ Return exactly 4 insights, one per line, no bullet points, no numbering, nothing
                     </div>
                   ))}
                 </div>
+              )}
+
+              {aiInsights.length > 0 && (
+                <ProductRecommendation
+                  tags={['recovery', 'performance']}
+                  title="Products that support your goals"
+                />
               )}
             </div>
           )}
