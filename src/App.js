@@ -233,6 +233,14 @@ function AppContent() {
 
   useEffect(() => {
     registerServiceWorker()
+    // Handle Stripe success redirect
+const urlParams = new URLSearchParams(window.location.search)
+if (urlParams.get('success') === 'true') {
+  window.history.replaceState({}, '', '/')
+}
+if (urlParams.get('canceled') === 'true') {
+  window.history.replaceState({}, '', '/')
+}
     const hasSeenNotifSetup = localStorage.getItem('notif_setup_seen')
     if (!hasSeenNotifSetup && user) {
       setTimeout(() => setShowNotificationSetup(true), 2000)

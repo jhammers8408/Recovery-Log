@@ -1,6 +1,9 @@
-import React from 'react'
+import React, { useState } from 'react'
+import { supabase } from './supabase'
 
-export default function Paywall({ feature, onClose }) {
+export default function Paywall({ feature, onClose, user }) {
+  const [loading, setLoading] = useState(false)
+
   const features = {
     ai_insights: {
       title: 'AI Analysis',
@@ -15,7 +18,7 @@ export default function Paywall({ feature, onClose }) {
     },
     experiments: {
       title: 'Unlimited Experiments',
-      description: 'You\'ve used your 3 free experiments. Upgrade to run unlimited controlled tests and discover exactly what works for you.',
+      description: 'You\'ve used your free experiments. Upgrade to run unlimited controlled tests and discover exactly what works for you.',
       icon: '🔬',
       perks: [
         'Unlimited simultaneous experiments',
@@ -23,10 +26,45 @@ export default function Paywall({ feature, onClose }) {
         'Advanced result analysis',
         'Full experiment history',
       ]
+    },
+    ai_experiments: {
+      title: 'Unlimited AI Experiments',
+      description: 'You\'ve used your free AI-generated experiments. Upgrade to get fresh AI-generated experiments every week.',
+      icon: '🤖',
+      perks: [
+        'New AI experiments generated every week',
+        'Based on latest sports science research',
+        'Personalized to your sport and goals',
+        'Full experiment history and results',
+      ]
     }
   }
 
   const content = features[feature] || features.ai_insights
+
+  const handleUpgrade = async () => {
+    setLoading(true)
+    try {
+      const { data: { user: currentUser } } = await supabase.auth.getUser()
+      const response = await fetch('/api/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: currentUser.id,
+          email: currentUser.email,
+        })
+      })
+      const data = await response.json()
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        alert('Something went wrong. Please try again.')
+      }
+    } catch (err) {
+      alert('Something went wrong. Please try again.')
+    }
+    setLoading(false)
+  }
 
   return (
     <div style={{
@@ -83,14 +121,20 @@ export default function Paywall({ feature, onClose }) {
           </div>
         </div>
 
-        <button style={{
-          width: '100%', padding: '16px',
-          background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
-          color: 'white', border: 'none', borderRadius: '14px',
-          fontSize: '16px', fontWeight: '700', cursor: 'pointer',
-          boxShadow: '0 4px 20px #0ea5e930', marginBottom: '12px'
-        }}>
-          Start Free Trial
+        <button
+          onClick={handleUpgrade}
+          disabled={loading}
+          style={{
+            width: '100%', padding: '16px',
+            background: loading ? '#1e2a3a' : 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
+            color: loading ? '#4a6080' : 'white',
+            border: 'none', borderRadius: '14px',
+            fontSize: '16px', fontWeight: '700',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            boxShadow: loading ? 'none' : '0 4px 20px #0ea5e930',
+            marginBottom: '12px'
+          }}>
+          {loading ? 'Loading...' : 'Start Free Trial'}
         </button>
 
         <p style={{ color: '#4a6080', fontSize: '12px', textAlign: 'center', margin: '0' }}>
