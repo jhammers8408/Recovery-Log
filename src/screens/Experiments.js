@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { callClaude } from '../claude'
-import Paywall from '../Paywall'
+import Paywall from '../paywall'
 import { useProStatus } from '../useProStatus'
+import ProductRecommendation from '../ProductRecommendation'
 
 const CATEGORIES = [
   { key: 'all', label: 'All' },
@@ -70,6 +71,11 @@ function ExperimentCard({ exp, onStart, isActive, isLocked }) {
         </div>
       </div>
 
+      <ProductRecommendation
+        actions={[exp.variable]}
+        compact={true}
+      />
+
       <button
         onClick={() => onStart(exp)}
         disabled={isActive}
@@ -79,7 +85,8 @@ function ExperimentCard({ exp, onStart, isActive, isLocked }) {
           color: isActive || isLocked ? '#4a6080' : 'white',
           border: 'none', borderRadius: '12px',
           fontSize: '14px', fontWeight: '600',
-          cursor: isActive ? 'not-allowed' : 'pointer'
+          cursor: isActive ? 'not-allowed' : 'pointer',
+          marginTop: '12px'
         }}>
         {isActive ? 'Already Active' : isLocked ? '🔒 Pro Required' : 'Start Experiment'}
       </button>
@@ -201,7 +208,6 @@ Return only the JSON array, nothing else.`
   }
 
   const startExperiment = async (exp) => {
-    console.log('isPro:', isPro, 'experimentCount:', experimentCount)
     if (!isPro && experimentCount >= 6) {
       setPaywallFeature('experiments')
       setShowPaywall(true)
@@ -338,10 +344,11 @@ Return only the JSON array, nothing else.`
                   <p style={{ color: '#8aa0b8', fontSize: '13px', margin: '0' }}>{featured.description}</p>
                 </div>
               </div>
+              <ProductRecommendation actions={[featured.variable]} compact={true} />
               <button
                 onClick={() => startExperiment(featured)}
                 disabled={activeVariables.includes(featured.variable)}
-                style={{ width: '100%', padding: '12px', background: activeVariables.includes(featured.variable) ? '#1e2a3a' : isExperimentsLocked ? '#1e2a3a' : '#0ea5e9', color: activeVariables.includes(featured.variable) || isExperimentsLocked ? '#4a6080' : 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: activeVariables.includes(featured.variable) ? 'not-allowed' : 'pointer' }}>
+                style={{ width: '100%', padding: '12px', background: activeVariables.includes(featured.variable) ? '#1e2a3a' : isExperimentsLocked ? '#1e2a3a' : '#0ea5e9', color: activeVariables.includes(featured.variable) || isExperimentsLocked ? '#4a6080' : 'white', border: 'none', borderRadius: '12px', fontSize: '14px', fontWeight: '600', cursor: activeVariables.includes(featured.variable) ? 'not-allowed' : 'pointer', marginTop: '12px' }}>
                 {activeVariables.includes(featured.variable) ? 'Already Active' : isExperimentsLocked ? '🔒 Pro Required' : 'Start Featured Experiment'}
               </button>
             </div>
@@ -363,7 +370,7 @@ Return only the JSON array, nothing else.`
           {loading ? (
             <p style={{ color: '#4a6080', textAlign: 'center', padding: '40px' }}>Loading experiments...</p>
           ) : (
-            filtered.filter(e => !e.is_featured).map((exp, i) => (
+            filtered.filter(e => !e.is_featured).map((exp) => (
               <ExperimentCard
                 key={exp.id}
                 exp={exp}

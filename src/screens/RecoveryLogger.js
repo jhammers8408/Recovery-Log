@@ -1,5 +1,6 @@
 import React, { useState } from 'react'
 import { supabase } from '../supabase'
+import ProductRecommendation from '../ProductRecommendation'
 
 const recoveryOptions = [
   { key: 'ice_bath', label: 'Ice Bath', emoji: '🧊' },
@@ -116,25 +117,29 @@ export default function RecoveryLogger({ user, onDone, priorities }) {
 
       {/* Selected Count & Notes */}
       {selected.length > 0 && (
-        <div style={{
-          background: '#0d1520', borderRadius: '14px', padding: '16px',
-          marginBottom: '10px', border: '0.5px solid #1e2a3a'
-        }}>
-          <p style={{ color: '#0ea5e9', fontSize: '13px', fontWeight: '600', margin: '0 0 10px' }}>
-            {selected.length} action{selected.length > 1 ? 's' : ''} selected
-          </p>
-          <textarea
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            placeholder="Any notes about your recovery today? (optional)"
-            style={{
-              width: '100%', backgroundColor: '#111820', border: '1px solid #1e2a3a',
-              borderRadius: '10px', padding: '12px', color: 'white', fontSize: '14px',
-              resize: 'none', minHeight: '80px', outline: 'none', lineHeight: '1.5'
-            }}
-          />
-        </div>
-      )}
+  <div style={{
+    background: '#0d1520', borderRadius: '14px', padding: '16px',
+    marginBottom: '10px', border: '0.5px solid #1e2a3a'
+  }}>
+    <p style={{ color: '#0ea5e9', fontSize: '13px', fontWeight: '600', margin: '0 0 10px' }}>
+      {selected.length} action{selected.length > 1 ? 's' : ''} selected
+    </p>
+    <textarea
+      value={notes}
+      onChange={e => setNotes(e.target.value)}
+      placeholder="Any notes about your recovery today? (optional)"
+      style={{
+        width: '100%', backgroundColor: '#111820', border: '1px solid #1e2a3a',
+        borderRadius: '10px', padding: '12px', color: 'white', fontSize: '14px',
+        resize: 'none', minHeight: '80px', outline: 'none', lineHeight: '1.5'
+      }}
+    />
+    <ProductRecommendation
+      actions={selected}
+      title="Recommended gear for your recovery"
+    />
+  </div>
+)}
 
       <button
         className="btn-primary"
