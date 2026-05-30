@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { callClaude } from '../claude'
-import Paywall from '../paywall'
+import Paywall from '../Paywall'
 import { useProStatus } from '../useProStatus'
 import ProductRecommendation from '../ProductRecommendation'
 
