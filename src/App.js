@@ -25,6 +25,7 @@ const navItems = [
   { key: 'checkin', label: 'Check-In', icon: ClipboardList },
   { key: 'nutrition', label: 'Nutrition', icon: Apple },
   { key: 'experiments', label: 'Lab', icon: FlaskConical },
+  { key: 'insights', label: 'Insights', icon: Brain },
   { key: 'shop', label: 'Shop', icon: ShoppingBag },
   { key: 'profile', label: 'Profile', icon: User },
 ]
