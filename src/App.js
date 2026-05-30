@@ -18,10 +18,10 @@ import Nutrition from './screens/Nutrition'
 import NotificationSetup from './screens/NotificationSetup'
 import { registerServiceWorker } from './notifications'
 import Shop from './screens/Shop'
-import { Home, ClipboardList, Apple, FlaskConical, ShoppingBag, User, Brain } from 'lucide-react'
+import { Home as HomeIcon, ClipboardList, Apple, FlaskConical, ShoppingBag, User, Brain } from 'lucide-react'
 
 const navItems = [
-  { key: 'home', label: 'Home', icon: Home },
+  { key: 'home', label: 'Home', icon: HomeIcon },
   { key: 'checkin', label: 'Check-In', icon: ClipboardList },
   { key: 'nutrition', label: 'Nutrition', icon: Apple },
   { key: 'experiments', label: 'Lab', icon: FlaskConical },
