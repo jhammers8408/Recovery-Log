@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabase'
 import { callClaude } from '../claude'
+import { useToast } from '../Toast'
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack']
 
@@ -98,6 +99,7 @@ export default function Nutrition({ user }) {
   const [customTargets, setCustomTargets] = useState(null)
   const [savingGoals, setSavingGoals] = useState(false)
   const fileRef = useRef()
+  const toast = useToast()
 
   const today = new Date().toLocaleDateString('en-CA')
 
@@ -188,9 +190,10 @@ export default function Nutrition({ user }) {
     }
 
     if (!error) {
-      setGoals(goalData)
-      setView('log')
-    } else {
+  setGoals(goalData)
+  setView('log')
+  toast('Goals saved!', 'success')
+} else {
       console.log('Save error:', error)
       alert('Something went wrong saving your goals.')
     }
