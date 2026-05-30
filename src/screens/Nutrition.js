@@ -107,7 +107,7 @@ export default function Nutrition({ user }) {
     const [{ data: foodData }, { data: logData }, { data: goalData }] = await Promise.all([
       supabase.from('nutrition_logs').select('*').eq('user_id', user.id).eq('log_date', today).order('created_at', { ascending: true }),
       supabase.from('daily_logs').select('bodyweight').eq('user_id', user.id).order('log_date', { ascending: false }).limit(1),
-      supabase.from('nutrition_goals').select('*').eq('user_id', user.id).single(),
+      supabase.from('nutrition_goals').select('*').eq('user_id', user.id).maybeSingle(),
     ])
     if (foodData) setFoods(foodData)
     if (logData && logData[0]?.bodyweight) setBodyweight(logData[0].bodyweight)
@@ -151,22 +151,55 @@ export default function Nutrition({ user }) {
   }
 
   const saveGoals = async () => {
-    setSavingGoals(true)
-    const { error } = await supabase.from('nutrition_goals').upsert({
+  setSavingGoals(true)
+  try {
+    const { data: existing } = await supabase
+      .from('nutrition_goals')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    const goalData = {
       user_id: user.id,
       goal_type: goalType,
       height: height ? parseFloat(height) : null,
-      ...customTargets,
+      calories: customTargets?.calories || targets.calories,
+      protein: customTargets?.protein || targets.protein,
+      carbs: customTargets?.carbs || targets.carbs,
+      fat: customTargets?.fat || targets.fat,
+      fiber: customTargets?.fiber || targets.fiber,
+      sugar: customTargets?.sugar || targets.sugar,
+      sodium: customTargets?.sodium || targets.sodium,
       updated_at: new Date().toISOString(),
-    }, { onConflict: 'user_id' })
+    }
+
+    let error
+    if (existing) {
+      const { error: updateError } = await supabase
+        .from('nutrition_goals')
+        .update(goalData)
+        .eq('user_id', user.id)
+      error = updateError
+    } else {
+      const { error: insertError } = await supabase
+        .from('nutrition_goals')
+        .insert([goalData])
+      error = insertError
+    }
+
     if (!error) {
-      setGoals({ goal_type: goalType, ...customTargets })
+      setGoals(goalData)
       setView('log')
     } else {
+      console.log('Save error:', error)
       alert('Something went wrong saving your goals.')
     }
-    setSavingGoals(false)
+  } catch (err) {
+    console.log('Catch error:', err)
+    alert('Something went wrong saving your goals.')
   }
+  setSavingGoals(false)
+}
 
   const handlePhotoScan = async (e) => {
     const file = e.target.files[0]
