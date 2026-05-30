@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { analyzeMetrics } from '../intelligence'
+import ProductRecommendation from '../ProductRecommendation'
 
 function getGreeting() {
   const hour = new Date().getHours()
@@ -186,6 +187,17 @@ export default function Home({ user, onNavigate }) {
           </div>
         ))}
       </div>
+{/* Daily Product Recommendation */}
+<div style={{ background: '#0d1520', borderRadius: '16px', padding: '16px', marginBottom: '12px', border: '0.5px solid #1e2a3a' }}>
+  <p style={{ color: '#4a6080', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 4px' }}>Today's pick</p>
+  <p style={{ color: '#4a6080', fontSize: '12px', margin: '0 0 4px' }}>Based on your recovery data</p>
+  <ProductRecommendation
+    tags={intelligence?.recoveryPriorities?.length > 0
+      ? [intelligence.recoveryPriorities[0].action]
+      : ['recovery']}
+    compact={true}
+  />
+</div>
 
       {/* Weekly Chart */}
       <div style={{ background: '#0d1520', borderRadius: '16px', padding: '16px', border: '0.5px solid #1e2a3a' }}>

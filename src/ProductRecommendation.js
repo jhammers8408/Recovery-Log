@@ -6,22 +6,50 @@ export default function ProductRecommendation({ actions, tags, title, compact })
   const [products, setProducts] = useState([])
 
   useEffect(() => {
-    if (actions?.length > 0 || tags?.length > 0) {
-      fetchProducts()
-    }
-  }, [actions, tags]) // eslint-disable-line
+    fetchProducts()
+  }, []) // eslint-disable-line
 
   const fetchProducts = async () => {
-    let query = supabase.from('affiliate_products').select('*').limit(compact ? 1 : 2)
+    let data = []
 
     if (actions && actions.length > 0) {
-      query = query.overlaps('recovery_actions', actions)
-    } else if (tags && tags.length > 0) {
-      query = query.overlaps('tags', tags)
+      for (const action of actions) {
+        const { data: result } = await supabase
+          .from('affiliate_products')
+          .select('*')
+          .contains('recovery_actions', [action])
+          .limit(1)
+        if (result && result.length > 0) {
+          data = [...data, ...result]
+          break
+        }
+      }
     }
 
-    const { data } = await query
-    if (data && data.length > 0) setProducts(data)
+    if (data.length === 0 && tags && tags.length > 0) {
+      for (const tag of tags) {
+        const { data: result } = await supabase
+          .from('affiliate_products')
+          .select('*')
+          .contains('tags', [tag])
+          .limit(compact ? 1 : 2)
+        if (result && result.length > 0) {
+          data = [...data, ...result]
+          break
+        }
+      }
+    }
+
+    if (data.length === 0) {
+      const { data: featured } = await supabase
+        .from('affiliate_products')
+        .select('*')
+        .eq('is_featured', true)
+        .limit(compact ? 1 : 2)
+      if (featured) data = featured
+    }
+
+    setProducts(compact ? data.slice(0, 1) : data.slice(0, 2))
   }
 
   if (products.length === 0) return null
@@ -32,7 +60,7 @@ export default function ProductRecommendation({ actions, tags, title, compact })
       <div
         onClick={() => window.open(product.amazon_url, '_blank')}
         style={{
-          background: '#0d1520',
+          background: '#111820',
           borderRadius: '12px',
           padding: '12px 14px',
           marginTop: '10px',
@@ -46,7 +74,7 @@ export default function ProductRecommendation({ actions, tags, title, compact })
         <ShoppingBag size={16} color="#f59e0b" />
         <div style={{ flex: 1 }}>
           <p style={{ color: '#f0f6ff', fontSize: '12px', fontWeight: '600', margin: '0 0 1px' }}>{product.name}</p>
-          <p style={{ color: '#4a6080', fontSize: '11px', margin: '0' }}>Recommended · View on Amazon</p>
+          <p style={{ color: '#4a6080', fontSize: '11px', margin: '0' }}>{product.brand} · View on Amazon</p>
         </div>
         <p style={{ color: '#f59e0b', fontSize: '12px', fontWeight: '700', margin: '0' }}>{product.price_range}</p>
       </div>
