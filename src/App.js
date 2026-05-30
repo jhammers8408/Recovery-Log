@@ -17,14 +17,16 @@ import Experiments from './screens/Experiments'
 import Nutrition from './screens/Nutrition'
 import NotificationSetup from './screens/NotificationSetup'
 import { registerServiceWorker } from './notifications'
+import Shop from './screens/Shop'
+import { Home, ClipboardList, Apple, FlaskConical, ShoppingBag, User, Brain } from 'lucide-react'
 
 const navItems = [
-  { key: 'home', label: 'Home', icon: '🏠' },
-  { key: 'checkin', label: 'Check-In', icon: '📋' },
-  { key: 'nutrition', label: 'Nutrition', icon: '🍎' },
-  { key: 'experiments', label: 'Lab', icon: '🔬' },
-  { key: 'insights', label: 'Insights', icon: '🧠' },
-  { key: 'profile', label: 'Profile', icon: '👤' },
+  { key: 'home', label: 'Home', icon: Home },
+  { key: 'checkin', label: 'Check-In', icon: ClipboardList },
+  { key: 'nutrition', label: 'Nutrition', icon: Apple },
+  { key: 'experiments', label: 'Lab', icon: FlaskConical },
+  { key: 'shop', label: 'Shop', icon: ShoppingBag },
+  { key: 'profile', label: 'Profile', icon: User },
 ]
 
 function Auth() {
@@ -171,7 +173,7 @@ function MainApp({ user }) {
         <nav className="bottom-nav">
           {navItems.map(item => (
             <div key={item.key} className="nav-item">
-              <span className="nav-icon">{item.icon}</span>
+              <item.icon size={20} style={{ color: page === item.key ? '#0ea5e9' : '#555', transition: 'transform 0.2s', transform: page === item.key ? 'scale(1.15)' : 'scale(1)' }} />
               <span className="nav-label">{item.label}</span>
             </div>
           ))}
