@@ -200,7 +200,7 @@ function MainApp({ user }) {
       <nav className="bottom-nav">
         {navItems.map(item => (
           <div key={item.key} className={`nav-item ${page === item.key ? 'active' : ''}`} onClick={() => navigate(item.key)}>
-            <span className="nav-icon" style={{ transform: page === item.key ? 'scale(1.15)' : 'scale(1)', transition: 'transform 0.2s' }}>{item.icon}</span>
+            <item.icon size={20} style={{ color: page === item.key ? '#0ea5e9' : '#555', transform: page === item.key ? 'scale(1.15)' : 'scale(1)', transition: 'transform 0.2s' }} />
             <span className="nav-label">{item.label}</span>
           </div>
         ))}
