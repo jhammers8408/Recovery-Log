@@ -194,6 +194,7 @@ function MainApp({ user }) {
         {page === 'journal' && <Journal user={user} />}
         {page === 'experiments' && <Experiments user={user} />}
         {page === 'nutrition' && <Nutrition user={user} />}
+        {page === 'shop' && <Shop user={user} recommendedActions={appIntelligence?.recoveryPriorities} />}
       </PageTransition>
 
       <nav className="bottom-nav">
