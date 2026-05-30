@@ -9,6 +9,10 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
+    console.log('Stripe key exists:', !!process.env.STRIPE_SECRET_KEY)
+    console.log('Price ID exists:', !!process.env.STRIPE_PRICE_ID)
+    console.log('Request body:', req.body)
+
     const { userId, email } = req.body
 
     const session = await stripe.checkout.sessions.create({
@@ -26,6 +30,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ url: session.url })
   } catch (err) {
+    console.log('Stripe error:', err.message)
     return res.status(500).json({ error: err.message })
   }
 }
