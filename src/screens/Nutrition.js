@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { supabase } from '../supabase'
-import { callClaude } from '../claude'
 import { useToast } from '../Toast'
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack']
@@ -20,17 +19,11 @@ const calculateTargets = (bodyweight, height, goalType) => {
   const bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * 25) + 5
   const tdee = Math.round(bmr * 1.55)
   const calorieAdjust = {
-    lose_weight: -500,
-    maintain: 0,
-    build_muscle: 300,
-    improve_performance: 200,
+    lose_weight: -500, maintain: 0, build_muscle: 300, improve_performance: 200,
   }
   const calories = tdee + (calorieAdjust[goalType] || 0)
   const proteinMultipliers = {
-    lose_weight: 1.0,
-    maintain: 0.8,
-    build_muscle: 1.2,
-    improve_performance: 1.0,
+    lose_weight: 1.0, maintain: 0.8, build_muscle: 1.2, improve_performance: 1.0,
   }
   const protein = Math.round(bw * (proteinMultipliers[goalType] || 0.8))
   const fat = Math.round((calories * 0.25) / 9)
@@ -38,12 +31,22 @@ const calculateTargets = (bodyweight, height, goalType) => {
   return { calories, protein, carbs: Math.max(carbs, 50), fat, fiber: 30, sugar: 50, sodium: 2300 }
 }
 
-const analyzeFood = async (prompt, imageBase64, useGemini) => {
-  if (useGemini && imageBase64) {
-    const response = await fetch('/api/gemini', {
+const analyzeFood = async (prompt, imageBase64) => {
+  if (imageBase64) {
+    const response = await fetch('/api/claude', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt, imageBase64, mimeType: 'image/jpeg' })
+      body: JSON.stringify({
+        useVision: true,
+        max_tokens: 1000,
+        messages: [{
+          role: 'user',
+          content: [
+            { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
+            { type: 'text', text: prompt }
+          ]
+        }]
+      })
     })
     const data = await response.json()
     const text = data.content[0].text
@@ -51,11 +54,35 @@ const analyzeFood = async (prompt, imageBase64, useGemini) => {
     return JSON.parse(clean)
   }
 
-  const messages = [{ role: 'user', content: prompt }]
-  const data = await callClaude(messages)
+  const response = await fetch('/api/claude', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      max_tokens: 1000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  })
+  const data = await response.json()
   const text = data.content[0].text
   const clean = text.replace(/```json|```/g, '').trim()
   return JSON.parse(clean)
+}
+
+function MacroBar({ label, value, target, color }) {
+  const pct = target ? Math.min((value / target) * 100, 100) : 0
+  return (
+    <div style={{ marginBottom: '12px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
+        <span style={{ color: '#f0f6ff', fontSize: '13px' }}>{label}</span>
+        <span style={{ color, fontSize: '13px', fontWeight: '600' }}>
+          {Math.round(value)}<span style={{ color: '#4a6080', fontWeight: '400' }}>/{target}</span>
+        </span>
+      </div>
+      <div style={{ background: '#1e2a3a', borderRadius: '4px', height: '6px' }}>
+        <div style={{ background: color, borderRadius: '4px', height: '6px', width: `${pct}%`, transition: 'width 0.4s ease' }} />
+      </div>
+    </div>
+  )
 }
 
 function FoodCard({ food, onDelete }) {
@@ -74,6 +101,7 @@ function FoodCard({ food, onDelete }) {
 }
 
 export default function Nutrition({ user }) {
+  const toast = useToast()
   const [foods, setFoods] = useState([])
   const [loading, setLoading] = useState(true)
   const [view, setView] = useState('log')
@@ -84,12 +112,10 @@ export default function Nutrition({ user }) {
   const [selectedMeal, setSelectedMeal] = useState('breakfast')
   const [bodyweight, setBodyweight] = useState(null)
   const [height, setHeight] = useState(null)
-  const [goals, setGoals] = useState(null)
   const [goalType, setGoalType] = useState('maintain')
   const [customTargets, setCustomTargets] = useState(null)
   const [savingGoals, setSavingGoals] = useState(false)
   const fileRef = useRef()
-  const toast = useToast()
 
   const today = new Date().toLocaleDateString('en-CA')
 
@@ -104,7 +130,6 @@ export default function Nutrition({ user }) {
     if (foodData) setFoods(foodData)
     if (logData && logData[0]?.bodyweight) setBodyweight(logData[0].bodyweight)
     if (goalData) {
-      setGoals(goalData)
       setGoalType(goalData.goal_type || 'maintain')
       if (goalData.height) setHeight(goalData.height)
       setCustomTargets({
@@ -134,8 +159,7 @@ export default function Nutrition({ user }) {
 
   const handleGoalSelect = (key) => {
     setGoalType(key)
-    const suggested = calculateTargets(bodyweight, height, key)
-    setCustomTargets(suggested)
+    setCustomTargets(calculateTargets(bodyweight, height, key))
   }
 
   const handleTargetChange = (key, value) => {
@@ -143,56 +167,41 @@ export default function Nutrition({ user }) {
   }
 
   const saveGoals = async () => {
-  setSavingGoals(true)
-  try {
-    const { data: existing } = await supabase
-      .from('nutrition_goals')
-      .select('id')
-      .eq('user_id', user.id)
-      .maybeSingle()
-
-    const goalData = {
-      user_id: user.id,
-      goal_type: goalType,
-      height: height ? parseFloat(height) : null,
-      calories: customTargets?.calories || targets.calories,
-      protein: customTargets?.protein || targets.protein,
-      carbs: customTargets?.carbs || targets.carbs,
-      fat: customTargets?.fat || targets.fat,
-      fiber: customTargets?.fiber || targets.fiber,
-      sugar: customTargets?.sugar || targets.sugar,
-      sodium: customTargets?.sodium || targets.sodium,
-      updated_at: new Date().toISOString(),
-    }
-
-    let error
-    if (existing) {
-      const { error: updateError } = await supabase
-        .from('nutrition_goals')
-        .update(goalData)
-        .eq('user_id', user.id)
-      error = updateError
-    } else {
-      const { error: insertError } = await supabase
-        .from('nutrition_goals')
-        .insert([goalData])
-      error = insertError
-    }
-
-    if (!error) {
-  setGoals(goalData)
-  setView('log')
-  toast('Goals saved!', 'success')
-} else {
-      console.log('Save error:', error)
+    setSavingGoals(true)
+    try {
+      const { data: existing } = await supabase.from('nutrition_goals').select('id').eq('user_id', user.id).maybeSingle()
+      const goalData = {
+        user_id: user.id,
+        goal_type: goalType,
+        height: height ? parseFloat(height) : null,
+        calories: customTargets?.calories || targets.calories,
+        protein: customTargets?.protein || targets.protein,
+        carbs: customTargets?.carbs || targets.carbs,
+        fat: customTargets?.fat || targets.fat,
+        fiber: customTargets?.fiber || targets.fiber,
+        sugar: customTargets?.sugar || targets.sugar,
+        sodium: customTargets?.sodium || targets.sodium,
+        updated_at: new Date().toISOString(),
+      }
+      let error
+      if (existing) {
+        const { error: updateError } = await supabase.from('nutrition_goals').update(goalData).eq('user_id', user.id)
+        error = updateError
+      } else {
+        const { error: insertError } = await supabase.from('nutrition_goals').insert([goalData])
+        error = insertError
+      }
+      if (!error) {
+        setView('log')
+        toast('Goals saved!', 'success')
+      } else {
+        alert('Something went wrong saving your goals.')
+      }
+    } catch (err) {
       alert('Something went wrong saving your goals.')
     }
-  } catch (err) {
-    console.log('Catch error:', err)
-    alert('Something went wrong saving your goals.')
+    setSavingGoals(false)
   }
-  setSavingGoals(false)
-}
 
   const handlePhotoScan = async (e) => {
     const file = e.target.files[0]
@@ -221,8 +230,7 @@ export default function Nutrition({ user }) {
   "vitamins": { "vitamin_a": "percent daily value", "vitamin_c": "percent daily value", "vitamin_d": "percent daily value", "calcium": "percent daily value", "iron": "percent daily value" }
 }
 Return only the JSON, no other text.`,
-        base64,
-        true
+        base64
       )
       setScannedResult({ ...result, scan_method: 'photo' })
     } catch (err) {
@@ -271,6 +279,7 @@ Return only the JSON, no other text.`
       setSearchQuery('')
       setView('log')
       fetchData()
+      toast('Food logged!', 'success')
     } else {
       alert('Something went wrong saving.')
     }
@@ -489,33 +498,11 @@ Return only the JSON, no other text.`
             <div style={{ display: 'flex', gap: '12px' }}>
               <div style={{ flex: 1 }}>
                 <p style={{ color: '#4a6080', fontSize: '12px', margin: '0 0 6px' }}>Weight (lbs)</p>
-                <input
-                  type="number"
-                  value={bodyweight || ''}
-                  onChange={e => {
-                    setBodyweight(e.target.value)
-                    if (e.target.value && goalType) {
-                      setCustomTargets(calculateTargets(e.target.value, height, goalType))
-                    }
-                  }}
-                  placeholder="175"
-                  style={{ width: '100%', background: '#111820', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '10px', color: 'white', fontSize: '14px', outline: 'none' }}
-                />
+                <input type="number" value={bodyweight || ''} onChange={e => { setBodyweight(e.target.value); if (e.target.value && goalType) setCustomTargets(calculateTargets(e.target.value, height, goalType)) }} placeholder="175" style={{ width: '100%', background: '#111820', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '10px', color: 'white', fontSize: '14px', outline: 'none' }} />
               </div>
               <div style={{ flex: 1 }}>
                 <p style={{ color: '#4a6080', fontSize: '12px', margin: '0 0 6px' }}>Height (in)</p>
-                <input
-                  type="number"
-                  value={height || ''}
-                  onChange={e => {
-                    setHeight(e.target.value)
-                    if (e.target.value && bodyweight && goalType) {
-                      setCustomTargets(calculateTargets(bodyweight, e.target.value, goalType))
-                    }
-                  }}
-                  placeholder="72"
-                  style={{ width: '100%', background: '#111820', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '10px', color: 'white', fontSize: '14px', outline: 'none' }}
-                />
+                <input type="number" value={height || ''} onChange={e => { setHeight(e.target.value); if (e.target.value && bodyweight && goalType) setCustomTargets(calculateTargets(bodyweight, e.target.value, goalType)) }} placeholder="72" style={{ width: '100%', background: '#111820', border: '1px solid #1e2a3a', borderRadius: '10px', padding: '10px', color: 'white', fontSize: '14px', outline: 'none' }} />
               </div>
             </div>
             <p style={{ color: '#4a6080', fontSize: '11px', margin: '12px 0 0' }}>Used to calculate personalized targets using the Mifflin-St Jeor formula</p>
@@ -536,12 +523,7 @@ Return only the JSON, no other text.`
               <div key={item.key} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
                 <p style={{ color: '#f0f6ff', fontSize: '14px', margin: '0' }}>{item.label}</p>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <input
-                    type="number"
-                    value={customTargets?.[item.key] || targets[item.key]}
-                    onChange={e => handleTargetChange(item.key, e.target.value)}
-                    style={{ width: '80px', background: '#111820', border: '1px solid #1e2a3a', borderRadius: '8px', padding: '8px', color: item.color, fontSize: '14px', fontWeight: '600', outline: 'none', textAlign: 'right' }}
-                  />
+                  <input type="number" value={customTargets?.[item.key] || targets[item.key]} onChange={e => handleTargetChange(item.key, e.target.value)} style={{ width: '80px', background: '#111820', border: '1px solid #1e2a3a', borderRadius: '8px', padding: '8px', color: item.color, fontSize: '14px', fontWeight: '600', outline: 'none', textAlign: 'right' }} />
                   <span style={{ color: '#4a6080', fontSize: '12px', minWidth: '28px' }}>{item.unit}</span>
                 </div>
               </div>

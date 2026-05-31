@@ -7,6 +7,26 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
+    const { messages, max_tokens, useVision } = req.body
+
+    if (useVision) {
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-api-key': process.env.ANTHROPIC_API_KEY,
+          'anthropic-version': '2023-06-01',
+        },
+        body: JSON.stringify({
+          model: 'claude-opus-4-5',
+          max_tokens: max_tokens || 1000,
+          messages,
+        }),
+      })
+      const data = await response.json()
+      return res.status(200).json(data)
+    }
+
     const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: {
@@ -15,20 +35,18 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'llama-3.3-70b-versatile',
-        max_tokens: req.body.max_tokens || 1000,
-        messages: req.body.messages,
+        max_tokens: max_tokens || 1000,
+        messages: messages,
       }),
     })
 
     const data = await response.json()
-
     const formatted = {
       content: [{
         type: 'text',
         text: data.choices?.[0]?.message?.content || ''
       }]
     }
-
     return res.status(200).json(formatted)
   } catch (err) {
     return res.status(500).json({ error: err.message })
