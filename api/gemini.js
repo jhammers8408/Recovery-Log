@@ -7,7 +7,13 @@ export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
   try {
+    console.log('Gemini API hit')
+    console.log('API key exists:', !!process.env.GEMINI_API_KEY)
+
     const { prompt, imageBase64, mimeType } = req.body
+
+    console.log('Has image:', !!imageBase64)
+    console.log('Prompt length:', prompt?.length)
 
     const parts = []
 
@@ -34,10 +40,14 @@ export default async function handler(req, res) {
     )
 
     const data = await response.json()
+    console.log('Gemini status:', response.status)
+    console.log('Gemini response:', JSON.stringify(data).slice(0, 500))
+
     const text = data.candidates?.[0]?.content?.parts?.[0]?.text || ''
 
     return res.status(200).json({ content: [{ type: 'text', text }] })
   } catch (err) {
+    console.log('Gemini error:', err.message)
     return res.status(500).json({ error: err.message })
   }
 }
