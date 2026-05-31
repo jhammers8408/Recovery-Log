@@ -6,6 +6,7 @@ import SplashScreen from './SplashScreen'
 import PageTransition from './PageTransition'
 import { HomeScreenSkeleton } from './Skeleton'
 import { LogoIcon } from './Logo'
+import Onboarding from './Onboarding'
 import Home from './screens/Home'
 import CheckIn from './screens/CheckIn'
 import RecoveryLogger from './screens/RecoveryLogger'
@@ -21,7 +22,6 @@ import TermsOfService from './screens/TermsOfService'
 import NotificationSetup from './screens/NotificationSetup'
 import { registerServiceWorker } from './notifications'
 import { Home as HomeIcon, ClipboardList, Apple, FlaskConical, ShoppingBag, User, Brain } from 'lucide-react'
-import Onboarding from './Onboarding'
 
 const navItems = [
   { key: 'home', label: 'Home', icon: HomeIcon },
@@ -40,7 +40,6 @@ function Auth() {
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
-  const [showOnboarding, setShowOnboarding] = useState(false)
 
   const handleGoogleLogin = async () => {
     try {
@@ -214,12 +213,14 @@ function AppContent() {
   const [user, setUser] = useState(null)
   const [authLoading, setAuthLoading] = useState(true)
   const [showSplash, setShowSplash] = useState(true)
+  const [showOnboarding, setShowOnboarding] = useState(false)
   const [showNotificationSetup, setShowNotificationSetup] = useState(false)
 
   useEffect(() => {
     const seen = localStorage.getItem('onboarding_seen')
     if (!seen) setShowOnboarding(true)
   }, [])
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
@@ -242,18 +243,18 @@ function AppContent() {
 
   if (showSplash) return <SplashScreen onDone={() => setShowSplash(false)} />
 
+  if (showOnboarding) return <Onboarding onDone={() => {
+    localStorage.setItem('onboarding_seen', 'true')
+    setShowOnboarding(false)
+  }} />
+
   if (authLoading) return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#080d13' }}>
       <div style={{ fontSize: '48px' }}>⚡</div>
     </div>
   )
 
-  if (showOnboarding) return <Onboarding onDone={() => {
-    localStorage.setItem('onboarding_seen', 'true')
-    setShowOnboarding(false)
-  }} />
-
-if (!user) return <Auth />
+  if (!user) return <Auth />
 
   return (
     <>
