@@ -198,7 +198,28 @@ export default function Home({ user, onNavigate }) {
     compact={true}
   />
 </div>
-
+{/* Journal Access */}
+<div
+  onClick={() => onNavigate('journal')}
+  style={{
+    background: '#0d1520', borderRadius: '14px', padding: '14px 16px',
+    marginBottom: '12px', border: '0.5px solid #1e2a3a',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    cursor: 'pointer', transition: 'all 0.15s'
+  }}
+  onMouseEnter={e => e.currentTarget.style.borderColor = '#0ea5e940'}
+  onMouseLeave={e => e.currentTarget.style.borderColor = '#1e2a3a'}>
+  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+    <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: '#0ea5e915', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      📅
+    </div>
+    <div>
+      <p style={{ color: '#f0f6ff', fontSize: '14px', fontWeight: '500', margin: '0 0 2px' }}>Training Journal</p>
+      <p style={{ color: '#4a6080', fontSize: '12px', margin: '0' }}>View your past check-ins</p>
+    </div>
+  </div>
+  <p style={{ color: '#0ea5e9', fontSize: '13px', margin: '0' }}>View →</p>
+</div>
       {/* Weekly Chart */}
       <div style={{ background: '#0d1520', borderRadius: '16px', padding: '16px', border: '0.5px solid #1e2a3a' }}>
         <p style={{ color: '#4a6080', fontSize: '10px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 14px' }}>This week</p>
