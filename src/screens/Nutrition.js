@@ -38,34 +38,24 @@ const calculateTargets = (bodyweight, height, goalType) => {
   return { calories, protein, carbs: Math.max(carbs, 50), fat, fiber: 30, sugar: 50, sodium: 2300 }
 }
 
-const analyzeFood = async (prompt, imageBase64) => {
-  const messages = imageBase64
-    ? [{ role: 'user', content: [
-        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: imageBase64 } },
-        { type: 'text', text: prompt }
-      ]}]
-    : [{ role: 'user', content: prompt }]
+const analyzeFood = async (prompt, imageBase64, useGemini) => {
+  if (useGemini && imageBase64) {
+    const response = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt, imageBase64, mimeType: 'image/jpeg' })
+    })
+    const data = await response.json()
+    const text = data.content[0].text
+    const clean = text.replace(/```json|```/g, '').trim()
+    return JSON.parse(clean)
+  }
+
+  const messages = [{ role: 'user', content: prompt }]
   const data = await callClaude(messages)
   const text = data.content[0].text
   const clean = text.replace(/```json|```/g, '').trim()
   return JSON.parse(clean)
-}
-
-function MacroBar({ label, value, target, color }) {
-  const pct = target ? Math.min((value / target) * 100, 100) : 0
-  return (
-    <div style={{ marginBottom: '12px' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px' }}>
-        <span style={{ color: '#f0f6ff', fontSize: '13px' }}>{label}</span>
-        <span style={{ color, fontSize: '13px', fontWeight: '600' }}>
-          {Math.round(value)}<span style={{ color: '#4a6080', fontWeight: '400' }}>/{target}</span>
-        </span>
-      </div>
-      <div style={{ background: '#1e2a3a', borderRadius: '4px', height: '6px' }}>
-        <div style={{ background: color, borderRadius: '4px', height: '6px', width: `${pct}%`, transition: 'width 0.4s ease' }} />
-      </div>
-    </div>
-  )
 }
 
 function FoodCard({ food, onDelete }) {
@@ -231,7 +221,8 @@ export default function Nutrition({ user }) {
   "vitamins": { "vitamin_a": "percent daily value", "vitamin_c": "percent daily value", "vitamin_d": "percent daily value", "calcium": "percent daily value", "iron": "percent daily value" }
 }
 Return only the JSON, no other text.`,
-        base64
+        base64,
+        true
       )
       setScannedResult({ ...result, scan_method: 'photo' })
     } catch (err) {
