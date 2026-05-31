@@ -198,25 +198,34 @@ export default function Nutrition({ user }) {
         alert('Something went wrong saving your goals.')
       }
     } catch (err) {
-      alert('Something went wrong saving your goals.')
+      console.log('Photo scan error:', err.message)
+      alert('Error: ' + err.message)
     }
     setSavingGoals(false)
   }
 
   const handlePhotoScan = async (e) => {
-    const file = e.target.files[0]
-    if (!file) return
-    setScanning(true)
-    setView('add')
-    try {
-      const base64 = await new Promise((res, rej) => {
-        const reader = new FileReader()
-        reader.onload = () => res(reader.result.split(',')[1])
-        reader.onerror = rej
-        reader.readAsDataURL(file)
-      })
-      const result = await analyzeFood(
-        `Analyze this food image and return ONLY a JSON object with these exact fields:
+  const file = e.target.files[0]
+  console.log('File selected:', file?.name, file?.type, file?.size)
+  if (!file) return
+  setScanning(true)
+  setView('add')
+  try {
+    const base64 = await new Promise((res, rej) => {
+      const reader = new FileReader()
+      reader.onload = () => {
+        console.log('Base64 length:', reader.result?.length)
+        res(reader.result.split(',')[1])
+      }
+      reader.onerror = (err) => {
+        console.log('FileReader error:', err)
+        rej(err)
+      }
+      reader.readAsDataURL(file)
+    })
+    console.log('Sending to API, base64 length:', base64?.length)
+    const result = await analyzeFood(
+      `Analyze this food image and return ONLY a JSON object with these exact fields:
 {
   "food_name": "specific food name",
   "portion_size": "estimated portion (e.g. 1 cup, 200g, 1 medium)",
@@ -230,14 +239,16 @@ export default function Nutrition({ user }) {
   "vitamins": { "vitamin_a": "percent daily value", "vitamin_c": "percent daily value", "vitamin_d": "percent daily value", "calcium": "percent daily value", "iron": "percent daily value" }
 }
 Return only the JSON, no other text.`,
-        base64
-      )
-      setScannedResult({ ...result, scan_method: 'photo' })
-    } catch (err) {
-      alert('Could not identify food. Try again or use text search.')
-    }
-    setScanning(false)
+      base64
+    )
+    console.log('API result:', result)
+    setScannedResult({ ...result, scan_method: 'photo' })
+  } catch (err) {
+    console.log('Full error:', err)
+    alert('Error: ' + err.message)
   }
+  setScanning(false)
+}
 
   const handleTextSearch = async () => {
     if (!searchQuery.trim()) return
