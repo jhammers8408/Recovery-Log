@@ -21,6 +21,7 @@ import TermsOfService from './screens/TermsOfService'
 import NotificationSetup from './screens/NotificationSetup'
 import { registerServiceWorker } from './notifications'
 import { Home as HomeIcon, ClipboardList, Apple, FlaskConical, ShoppingBag, User, Brain } from 'lucide-react'
+import Onboarding from './Onboarding'
 
 const navItems = [
   { key: 'home', label: 'Home', icon: HomeIcon },
@@ -39,6 +40,7 @@ function Auth() {
   const [password, setPassword] = useState('')
   const [username, setUsername] = useState('')
   const [loading, setLoading] = useState(false)
+  const [showOnboarding, setShowOnboarding] = useState(false)
 
   const handleGoogleLogin = async () => {
     try {
@@ -215,6 +217,10 @@ function AppContent() {
   const [showNotificationSetup, setShowNotificationSetup] = useState(false)
 
   useEffect(() => {
+    const seen = localStorage.getItem('onboarding_seen')
+    if (!seen) setShowOnboarding(true)
+  }, [])
+  useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null)
       setAuthLoading(false)
@@ -242,7 +248,12 @@ function AppContent() {
     </div>
   )
 
-  if (!user) return <Auth />
+  if (showOnboarding) return <Onboarding onDone={() => {
+    localStorage.setItem('onboarding_seen', 'true')
+    setShowOnboarding(false)
+  }} />
+
+if (!user) return <Auth />
 
   return (
     <>
