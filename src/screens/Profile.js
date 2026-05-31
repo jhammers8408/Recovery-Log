@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
+import { Bell, Download, Lock, FileText, ChevronRight } from 'lucide-react'
 
-export default function Profile({ user, onSignOut }) {
+export default function Profile({ user, onSignOut, onNavigate }) {
   const [stats, setStats] = useState({ logs: 0, recoveries: 0, performances: 0, streak: 0 })
   const [loading, setLoading] = useState(true)
 
@@ -56,12 +57,25 @@ export default function Profile({ user, onSignOut }) {
       <div className="card">
         <p style={{ fontWeight: '600', marginBottom: '12px' }}>⚙️ Settings</p>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          {['🔔 Notification Reminders', '📊 Export My Data', '🔒 Privacy Settings'].map((item, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: i < 2 ? '1px solid #222' : 'none' }}>
-              <span style={{ color: '#aaa', fontSize: '15px' }}>{item}</span>
-              <span style={{ color: '#444' }}>›</span>
-            </div>
-          ))}
+          {[
+  { icon: Bell, label: 'Notification Reminders', key: 'notifications' },
+  { icon: Download, label: 'Export My Data', key: 'export' },
+  { icon: Lock, label: 'Privacy Policy', key: 'privacy' },
+  { icon: FileText, label: 'Terms of Service', key: 'terms' },
+].map((item, i) => (
+  <div key={i}
+    onClick={() => {
+      if (item.key === 'privacy') onNavigate('privacy')
+      if (item.key === 'terms') onNavigate('terms')
+    }}
+    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: i < 3 ? '1px solid #222' : 'none', cursor: 'pointer' }}>
+    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <item.icon size={16} color="#4a6080" />
+      <span style={{ color: '#aaa', fontSize: '15px' }}>{item.label}</span>
+    </div>
+    <ChevronRight size={16} color="#444" />
+  </div>
+))}
         </div>
       </div>
 
