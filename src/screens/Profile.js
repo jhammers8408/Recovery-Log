@@ -1,13 +1,19 @@
 import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { Bell, Download, Lock, FileText, ChevronRight } from 'lucide-react'
+import { registerForPushNotifications } from '../notifications'
+import { useToast } from '../Toast'
 
 export default function Profile({ user, onSignOut, onNavigate }) {
-  const [stats, setStats] = useState({ logs: 0, recoveries: 0, performances: 0, streak: 0 })
+  const toast = useToast()
+  const [stats, setStats] = useState({ logs: 0, recoveries: 0, performances: 0 })
   const [loading, setLoading] = useState(true)
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false)
 
   useEffect(() => {
     fetchStats()
+    const enabled = localStorage.getItem('notif_setup_seen')
+    setNotificationsEnabled(!!enabled)
   }, []) // eslint-disable-line
 
   const fetchStats = async () => {
@@ -20,7 +26,22 @@ export default function Profile({ user, onSignOut, onNavigate }) {
     setLoading(false)
   }
 
-  const username = user.user_metadata?.username || user.email.split('@')[0]
+  const handleNotifications = async () => {
+    try {
+      const granted = await registerForPushNotifications()
+      if (granted) {
+        localStorage.setItem('notif_setup_seen', 'true')
+        setNotificationsEnabled(true)
+        toast('Notifications enabled!', 'success')
+      } else {
+        toast('Please enable notifications in iPhone Settings → RecoveryLog', 'warning')
+      }
+    } catch (err) {
+      toast('Please enable notifications in iPhone Settings → RecoveryLog', 'warning')
+    }
+  }
+
+  const username = user.user_metadata?.username || user.email?.split('@')[0] || 'Athlete'
 
   return (
     <div className="screen">
@@ -30,52 +51,53 @@ export default function Profile({ user, onSignOut, onNavigate }) {
       <div className="card" style={{ textAlign: 'center', padding: '32px 20px' }}>
         <div style={{
           width: '80px', height: '80px', borderRadius: '50%',
-          background: 'linear-gradient(135deg, #6366f1, #8b5cf6)',
+          background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
-          fontSize: '32px', fontWeight: 'bold', margin: '0 auto 16px'
+          fontSize: '32px', fontWeight: 'bold', margin: '0 auto 16px', color: 'white'
         }}>
           {username.charAt(0).toUpperCase()}
         </div>
-        <h2 style={{ fontSize: '22px', marginBottom: '4px' }}>{username}</h2>
-        <p style={{ color: '#555', fontSize: '14px' }}>{user.email}</p>
+        <h2 style={{ fontSize: '22px', marginBottom: '4px', color: '#f0f6ff' }}>{username}</h2>
+        <p style={{ color: '#4a6080', fontSize: '14px' }}>{user.email}</p>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '12px' }}>
         {[
-          { label: 'Check-Ins', value: stats.logs, emoji: '📋' },
-          { label: 'Recovery Sessions', value: stats.recoveries, emoji: '💪' },
-          { label: 'Performance Logs', value: stats.performances, emoji: '⭐' },
-          { label: 'Day Streak', value: `${stats.logs > 0 ? Math.min(stats.logs, 7) : 0}🔥`, emoji: '' },
+          { label: 'Check-Ins', value: stats.logs, color: '#0ea5e9' },
+          { label: 'Recovery Sessions', value: stats.recoveries, color: '#2ecc71' },
+          { label: 'Performance Logs', value: stats.performances, color: '#f59e0b' },
+          { label: 'Day Streak', value: `${Math.min(stats.logs, 7)}🔥`, color: '#e74c3c' },
         ].map((s, i) => (
           <div key={i} className="card" style={{ textAlign: 'center', margin: 0 }}>
-            <div style={{ fontSize: '28px', fontWeight: '800', color: '#6366f1' }}>{s.emoji} {s.value}</div>
-            <div style={{ color: '#555', fontSize: '12px', marginTop: '4px' }}>{s.label}</div>
+            <div style={{ fontSize: '28px', fontWeight: '800', color: s.color }}>{s.value}</div>
+            <div style={{ color: '#4a6080', fontSize: '12px', marginTop: '4px' }}>{s.label}</div>
           </div>
         ))}
       </div>
 
       <div className="card">
-        <p style={{ fontWeight: '600', marginBottom: '12px' }}>⚙️ Settings</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+        <p style={{ fontWeight: '600', marginBottom: '12px', color: '#f0f6ff' }}>Settings</p>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
           {[
-  { icon: Bell, label: 'Notification Reminders', key: 'notifications' },
-  { icon: Download, label: 'Export My Data', key: 'export' },
-  { icon: Lock, label: 'Privacy Policy', key: 'privacy' },
-  { icon: FileText, label: 'Terms of Service', key: 'terms' },
-].map((item, i) => (
-  <div key={i}
-    onClick={() => {
-      if (item.key === 'privacy') onNavigate('privacy')
-      if (item.key === 'terms') onNavigate('terms')
-    }}
-    style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderBottom: i < 3 ? '1px solid #222' : 'none', cursor: 'pointer' }}>
-    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-      <item.icon size={16} color="#4a6080" />
-      <span style={{ color: '#aaa', fontSize: '15px' }}>{item.label}</span>
-    </div>
-    <ChevronRight size={16} color="#444" />
-  </div>
-))}
+            { icon: Bell, label: notificationsEnabled ? 'Notifications Enabled ✓' : 'Enable Notifications', key: 'notifications', color: notificationsEnabled ? '#2ecc71' : '#4a6080' },
+            { icon: Download, label: 'Export My Data', key: 'export', color: '#4a6080' },
+            { icon: Lock, label: 'Privacy Policy', key: 'privacy', color: '#4a6080' },
+            { icon: FileText, label: 'Terms of Service', key: 'terms', color: '#4a6080' },
+          ].map((item, i) => (
+            <div key={i}
+              onClick={async () => {
+                if (item.key === 'notifications') await handleNotifications()
+                if (item.key === 'privacy') onNavigate('privacy')
+                if (item.key === 'terms') onNavigate('terms')
+              }}
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '14px 0', borderBottom: i < 3 ? '1px solid #1e2a3a' : 'none', cursor: 'pointer' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <item.icon size={16} color={item.color} />
+                <span style={{ color: item.color === '#4a6080' ? '#aaa' : item.color, fontSize: '15px' }}>{item.label}</span>
+              </div>
+              <ChevronRight size={16} color="#444" />
+            </div>
+          ))}
         </div>
       </div>
 
