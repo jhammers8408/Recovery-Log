@@ -1,7 +1,7 @@
 import React, { useState } from 'react'
 import { supabase } from './supabase'
 
-export default function Paywall({ feature, onClose, user }) {
+export default function Paywall({ feature, onClose }) {
   const [loading, setLoading] = useState(false)
 
   const features = {
@@ -46,7 +46,9 @@ export default function Paywall({ feature, onClose, user }) {
     setLoading(true)
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser()
-      const response = await fetch('/api/create-checkout', {
+      console.log('User:', currentUser?.id, currentUser?.email)
+
+      const response = await fetch('https://recovery-log-gamma.vercel.app/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -54,13 +56,19 @@ export default function Paywall({ feature, onClose, user }) {
           email: currentUser.email,
         })
       })
+
+      console.log('Response status:', response.status)
       const data = await response.json()
+      console.log('Response data:', JSON.stringify(data))
+
       if (data.url) {
-        window.location.href = data.url
+        const { Browser } = await import('@capacitor/browser')
+        await Browser.open({ url: data.url })
       } else {
         alert('Something went wrong. Please try again.')
       }
     } catch (err) {
+      console.log('Catch error:', err.message)
       alert('Something went wrong. Please try again.')
     }
     setLoading(false)
