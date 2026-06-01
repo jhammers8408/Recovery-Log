@@ -22,6 +22,7 @@ import TermsOfService from './screens/TermsOfService'
 import NotificationSetup from './screens/NotificationSetup'
 import { registerServiceWorker } from './notifications'
 import { Home as HomeIcon, ClipboardList, Apple, FlaskConical, ShoppingBag, User, Brain } from 'lucide-react'
+import { Browser } from '@capacitor/browser'
 
 const navItems = [
   { key: 'home', label: 'Home', icon: HomeIcon },
@@ -43,14 +44,15 @@ function Auth() {
 
   const handleGoogleLogin = async () => {
   try {
-    const { error } = await supabase.auth.signInWithOAuth({
+    const { data, error } = await supabase.auth.signInWithOAuth({
       provider: 'google',
       options: {
         redirectTo: 'recoverylog://login',
-        queryParams: { access_type: 'offline', prompt: 'consent' }
+        skipBrowserRedirect: true,
       }
     })
-    if (error) toast(error.message, 'error')
+    if (error) { toast(error.message, 'error'); return }
+    await Browser.open({ url: data.url })
   } catch (err) {
     toast(err.message, 'error')
   }
@@ -226,10 +228,16 @@ function AppContent() {
       setUser(session?.user ?? null)
       setAuthLoading(false)
     })
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'SIGNED_IN') setUser(session?.user ?? null)
-      else if (event === 'SIGNED_OUT') setUser(null)
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+        setUser(session?.user ?? null)
+      } else if (event === 'SIGNED_OUT') {
+        setUser(null)
+      }
+      setAuthLoading(false)
     })
+
     return () => subscription.unsubscribe()
   }, [])
 
@@ -239,6 +247,42 @@ function AppContent() {
     if (!hasSeenNotifSetup && user) {
       setTimeout(() => setShowNotificationSetup(true), 2000)
     }
+
+    const setupDeepLink = async () => {
+  try {
+    const { App: CapApp } = await import('@capacitor/app')
+    const { Browser } = await import('@capacitor/browser')
+
+    CapApp.addListener('appUrlOpen', async ({ url }) => {
+      await Browser.close()
+      
+      // Parse tokens from the URL
+      const hashPart = url.split('#')[1] || url.split('?')[1] || ''
+      const params = new URLSearchParams(hashPart)
+      const accessToken = params.get('access_token')
+      const refreshToken = params.get('refresh_token')
+
+      if (accessToken && refreshToken) {
+        const { data, error } = await supabase.auth.setSession({
+          access_token: accessToken,
+          refresh_token: refreshToken,
+        })
+        if (data?.session) {
+          setUser(data.session.user)
+        } else {
+          console.log('setSession error:', error)
+        }
+      } else {
+        // fallback: just check session
+        const { data } = await supabase.auth.getSession()
+        if (data?.session) setUser(data.session.user)
+      }
+    })
+  } catch (err) {
+    console.log('Deep link not available:', err)
+  }
+}
+    setupDeepLink()
   }, [user]) // eslint-disable-line
 
   if (showSplash) return <SplashScreen onDone={() => setShowSplash(false)} />

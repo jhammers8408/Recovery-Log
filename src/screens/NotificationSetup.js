@@ -1,96 +1,66 @@
 import React, { useState } from 'react'
-import { requestNotificationPermission, scheduleNotifications, registerServiceWorker } from '../notifications'
+import { registerForPushNotifications } from '../notifications'
+import { Bell } from 'lucide-react'
 
 export default function NotificationSetup({ onDone }) {
-  const [status, setStatus] = useState('idle')
+  const [loading, setLoading] = useState(false)
 
   const handleEnable = async () => {
-    setStatus('requesting')
-    await registerServiceWorker()
-    const permission = await requestNotificationPermission()
-    if (permission === 'granted') {
-      await scheduleNotifications()
-      setStatus('granted')
-      setTimeout(() => onDone(), 1500)
-    } else if (permission === 'denied') {
-      setStatus('denied')
-    } else {
-      setStatus('idle')
-    }
+    setLoading(true)
+    await registerForPushNotifications()
+    setLoading(false)
+    onDone()
   }
 
   return (
     <div style={{
-      position: 'fixed', inset: 0, background: '#080d13',
-      display: 'flex', alignItems: 'center', justifyContent: 'center',
-      padding: '24px', zIndex: 9998
+      position: 'fixed', inset: 0, zIndex: 9999,
+      background: 'rgba(0,0,0,0.85)',
+      display: 'flex', alignItems: 'flex-end',
+      backdropFilter: 'blur(4px)',
     }}>
-      <div style={{ width: '100%', maxWidth: '360px', textAlign: 'center' }}>
+      <div style={{
+        background: '#0d1520',
+        borderRadius: '24px 24px 0 0',
+        padding: '32px 24px 48px',
+        width: '100%',
+        border: '0.5px solid #1e2a3a',
+      }}>
+        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+          <div style={{ width: '72px', height: '72px', borderRadius: '20px', background: '#0ea5e915', border: '1px solid #0ea5e930', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
+            <Bell size={32} color="#0ea5e9" />
+          </div>
+          <p style={{ color: '#f0f6ff', fontSize: '22px', fontWeight: '700', margin: '0 0 8px' }}>Stay on Track</p>
+          <p style={{ color: '#8aa0b8', fontSize: '14px', lineHeight: '1.6', margin: '0' }}>
+            Get a morning reminder to log your recovery and an evening reminder to reflect on your day.
+          </p>
+        </div>
 
-        <div style={{
-          width: '88px', height: '88px', borderRadius: '24px',
-          background: '#0d1520', border: '1px solid #1e2a3a',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 24px', fontSize: '40px'
-        }}>🔔</div>
-
-        <h2 style={{ color: '#f0f6ff', fontSize: '24px', fontWeight: '700', margin: '0 0 12px' }}>
-          Stay on track
-        </h2>
-        <p style={{ color: '#4a6080', fontSize: '15px', lineHeight: '1.6', margin: '0 0 32px' }}>
-          Get a morning check-in reminder and evening recovery nudge to keep your streak alive.
-        </p>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '24px' }}>
+        <div style={{ background: '#111820', borderRadius: '14px', padding: '16px', marginBottom: '24px', border: '0.5px solid #1e2a3a' }}>
           {[
-            { time: '8:00 AM', message: 'Morning check-in reminder', icon: '☀️' },
-            { time: '8:00 PM', message: 'Evening recovery reminder', icon: '🌙' },
-            { time: 'Anytime', message: 'Streak milestone alerts', icon: '🔥' },
+            { time: '8:00 AM', label: 'Morning check-in reminder', icon: '🌅' },
+            { time: '8:00 PM', label: 'Evening recovery log', icon: '🌙' },
           ].map((item, i) => (
-            <div key={i} style={{ background: '#0d1520', borderRadius: '12px', padding: '14px 16px', border: '0.5px solid #1e2a3a', display: 'flex', alignItems: 'center', gap: '14px', textAlign: 'left' }}>
-              <span style={{ fontSize: '22px' }}>{item.icon}</span>
+            <div key={i} style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', borderBottom: i === 0 ? '0.5px solid #1e2a3a' : 'none' }}>
+              <span style={{ fontSize: '24px' }}>{item.icon}</span>
               <div>
-                <p style={{ color: '#f0f6ff', fontSize: '14px', fontWeight: '500', margin: '0 0 2px' }}>{item.message}</p>
-                <p style={{ color: '#4a6080', fontSize: '12px', margin: '0' }}>{item.time}</p>
+                <p style={{ color: '#f0f6ff', fontSize: '14px', fontWeight: '500', margin: '0 0 2px' }}>{item.label}</p>
+                <p style={{ color: '#4a6080', fontSize: '12px', margin: '0' }}>{item.time} daily</p>
               </div>
             </div>
           ))}
         </div>
 
-        {status === 'granted' && (
-          <div style={{ background: '#2ecc7115', border: '1px solid #2ecc7140', borderRadius: '12px', padding: '14px', marginBottom: '16px' }}>
-            <p style={{ color: '#2ecc71', fontSize: '15px', fontWeight: '600', margin: '0' }}>Notifications enabled!</p>
-          </div>
-        )}
+        <button
+          onClick={handleEnable}
+          disabled={loading}
+          style={{ width: '100%', padding: '16px', background: '#0ea5e9', color: 'white', border: 'none', borderRadius: '14px', fontSize: '16px', fontWeight: '700', cursor: loading ? 'not-allowed' : 'pointer', marginBottom: '12px' }}>
+          {loading ? 'Setting up...' : 'Enable Notifications'}
+        </button>
 
-        {status === 'denied' && (
-          <div style={{ background: '#e74c3c15', border: '1px solid #e74c3c40', borderRadius: '12px', padding: '14px', marginBottom: '16px' }}>
-            <p style={{ color: '#e74c3c', fontSize: '14px', margin: '0' }}>Notifications blocked. Enable them in your browser settings.</p>
-          </div>
-        )}
-
-        {status !== 'granted' && (
-          <>
-            <button
-              onClick={handleEnable}
-              disabled={status === 'requesting'}
-              style={{
-                width: '100%', padding: '16px',
-                background: 'linear-gradient(135deg, #0ea5e9, #38bdf8)',
-                color: 'white', border: 'none', borderRadius: '14px',
-                fontSize: '16px', fontWeight: '700',
-                cursor: status === 'requesting' ? 'not-allowed' : 'pointer',
-                opacity: status === 'requesting' ? 0.7 : 1,
-                marginBottom: '12px',
-                boxShadow: '0 4px 20px #0ea5e930'
-              }}>
-              {status === 'requesting' ? 'Setting up...' : 'Enable Notifications'}
-            </button>
-            <button onClick={onDone} style={{ background: 'transparent', border: 'none', color: '#4a6080', fontSize: '14px', cursor: 'pointer', padding: '8px' }}>
-              Not now
-            </button>
-          </>
-        )}
+        <button onClick={onDone} style={{ width: '100%', padding: '14px', background: 'transparent', border: '1px solid #1e2a3a', borderRadius: '14px', color: '#4a6080', fontSize: '15px', cursor: 'pointer' }}>
+          Not Now
+        </button>
       </div>
     </div>
   )

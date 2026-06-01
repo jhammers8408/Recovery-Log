@@ -1,46 +1,53 @@
-export async function registerServiceWorker() {
-  if (!('serviceWorker' in navigator)) return null
+import { PushNotifications } from '@capacitor/push-notifications'
+
+export const registerForPushNotifications = async () => {
   try {
-    const registration = await navigator.serviceWorker.register('/sw.js')
-    console.log('Service worker registered')
-    return registration
+    const permission = await PushNotifications.requestPermissions()
+    
+    if (permission.receive === 'granted') {
+      await PushNotifications.register()
+      
+      PushNotifications.addListener('registration', token => {
+        console.log('Push token:', token.value)
+        localStorage.setItem('push_token', token.value)
+      })
+
+      PushNotifications.addListener('registrationError', err => {
+        console.log('Push registration error:', err)
+      })
+
+      PushNotifications.addListener('pushNotificationReceived', notification => {
+        console.log('Notification received:', notification)
+      })
+
+      PushNotifications.addListener('pushNotificationActionPerformed', action => {
+        console.log('Notification tapped:', action)
+      })
+
+      return true
+    }
+    return false
   } catch (err) {
-    console.error('Service worker failed:', err)
-    return null
+    console.log('Push notifications not available:', err)
+    return false
   }
 }
 
-export async function requestNotificationPermission() {
-  if (!('Notification' in window)) return 'unsupported'
-  if (Notification.permission === 'granted') return 'granted'
-  if (Notification.permission === 'denied') return 'denied'
-  const permission = await Notification.requestPermission()
-  return permission
-}
-
-export async function scheduleNotifications() {
-  const registration = await navigator.serviceWorker.ready
-  if (registration && registration.active) {
-    registration.active.postMessage({ type: 'SCHEDULE_NOTIFICATIONS' })
+export const registerServiceWorker = async () => {
+  if ('serviceWorker' in navigator) {
+    try {
+      await navigator.serviceWorker.register('/sw.js')
+    } catch (err) {
+      console.log('Service worker registration failed:', err)
+    }
   }
 }
 
-export function sendLocalNotification(title, body) {
-  if (Notification.permission === 'granted') {
-    new Notification(title, {
-      body,
-      icon: '/apple-touch-icon.png',
-    })
-  }
+export const requestNotificationPermission = async () => {
+  return await registerForPushNotifications()
 }
 
-export async function checkStreakAndNotify(streak) {
-  if (Notification.permission !== 'granted') return
-  const milestones = [3, 7, 14, 21, 30, 60, 100]
-  if (milestones.includes(streak)) {
-    sendLocalNotification(
-      `${streak} Day Streak! 🔥`,
-      `You've logged ${streak} days in a row. Keep it going!`
-    )
-  }
+export const scheduleNotifications = async () => {
+  // Notifications are handled server-side for native apps
+  return true
 }
