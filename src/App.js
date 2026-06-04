@@ -74,20 +74,29 @@ function Auth() {
   }
 
   const handleAppleLogin = async () => {
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: 'apple',
-        options: {
-          redirectTo: 'recoverylog://login',
-          skipBrowserRedirect: true,
-        }
-      })
-      if (error) { toast(error.message, 'error'); return }
-      await openBrowser(data.url)
-    } catch (err) {
-      toast(err.message, 'error')
+  try {
+    const { SignInWithApple } = await import('capacitor-sign-in-with-apple')
+    const result = await SignInWithApple.authorize({
+      clientId: 'com.jacobhammers.recoverylog',
+      redirectURI: 'https://agwzcqqalhpdedbjkfgw.supabase.co/auth/v1/callback',
+      scopes: 'email name',
+      state: '12345',
+      nonce: 'nonce',
+    })
+    console.log('Apple result:', JSON.stringify(result))
+    const { identityToken } = result.response
+    const { error } = await supabase.auth.signInWithIdToken({
+      provider: 'apple',
+      token: identityToken,
+    })
+    if (error) toast(error.message, 'error')
+  } catch (err) {
+    console.log('Apple error:', err.message)
+    if (!err.message?.includes('1001')) {
+      toast('Apple Sign In failed. Please try again.', 'error')
     }
   }
+}
 
   const inputStyle = {
     width: '100%', backgroundColor: '#111820', border: '1px solid #1e2a3a',

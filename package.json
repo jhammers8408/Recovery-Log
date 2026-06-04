@@ -15,6 +15,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
+    "capacitor-sign-in-with-apple": "^0.0.1",
     "lucide-react": "^1.17.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -47,12 +48,14 @@
     ]
   },
   "browser": {
-    "@capgo/capacitor-sign-in-with-apple": false,
-    "@capacitor/camera": false,
-    "@capacitor/push-notifications": false,
-    "@capacitor/browser": false,
-    "@capacitor/app": false
-  },
+  "@capacitor/sign-in-with-apple": false,
+  "@capgo/capacitor-sign-in-with-apple": false,
+  "capacitor-sign-in-with-apple": false,
+  "@capacitor/camera": false,
+  "@capacitor/push-notifications": false,
+  "@capacitor/browser": false,
+  "@capacitor/app": false
+},
   "devDependencies": {
     "@capacitor/assets": "^3.0.5"
   }
