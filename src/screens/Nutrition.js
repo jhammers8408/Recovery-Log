@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { supabase } from '../supabase'
 import { useToast } from '../Toast'
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera'
 
 const MEAL_TYPES = ['breakfast', 'lunch', 'dinner', 'snack']
 
@@ -18,13 +19,9 @@ const calculateTargets = (bodyweight, height, goalType) => {
   const heightCm = ht * 2.54
   const bmr = (10 * weightKg) + (6.25 * heightCm) - (5 * 25) + 5
   const tdee = Math.round(bmr * 1.55)
-  const calorieAdjust = {
-    lose_weight: -500, maintain: 0, build_muscle: 300, improve_performance: 200,
-  }
+  const calorieAdjust = { lose_weight: -500, maintain: 0, build_muscle: 300, improve_performance: 200 }
   const calories = tdee + (calorieAdjust[goalType] || 0)
-  const proteinMultipliers = {
-    lose_weight: 1.0, maintain: 0.8, build_muscle: 1.2, improve_performance: 1.0,
-  }
+  const proteinMultipliers = { lose_weight: 1.0, maintain: 0.8, build_muscle: 1.2, improve_performance: 1.0 }
   const protein = Math.round(bw * (proteinMultipliers[goalType] || 0.8))
   const fat = Math.round((calories * 0.25) / 9)
   const carbs = Math.round((calories - (protein * 4) - (fat * 9)) / 4)
@@ -33,7 +30,7 @@ const calculateTargets = (bodyweight, height, goalType) => {
 
 const analyzeFood = async (prompt, imageBase64) => {
   if (imageBase64) {
-    const response = await fetch('/api/claude', {
+    const response = await fetch('https://recovery-log-gamma.vercel.app/api/claude', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -54,7 +51,7 @@ const analyzeFood = async (prompt, imageBase64) => {
     return JSON.parse(clean)
   }
 
-  const response = await fetch('/api/claude', {
+  const response = await fetch('https://recovery-log-gamma.vercel.app/api/claude', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
@@ -115,7 +112,6 @@ export default function Nutrition({ user }) {
   const [goalType, setGoalType] = useState('maintain')
   const [customTargets, setCustomTargets] = useState(null)
   const [savingGoals, setSavingGoals] = useState(false)
-  const fileRef = useRef()
 
   const today = new Date().toLocaleDateString('en-CA')
 
@@ -198,34 +194,27 @@ export default function Nutrition({ user }) {
         alert('Something went wrong saving your goals.')
       }
     } catch (err) {
-      console.log('Photo scan error:', err.message)
-      alert('Error: ' + err.message)
+      alert('Something went wrong saving your goals.')
     }
     setSavingGoals(false)
   }
 
-  const handlePhotoScan = async (e) => {
-  const file = e.target.files[0]
-  console.log('File selected:', file?.name, file?.type, file?.size)
-  if (!file) return
-  setScanning(true)
-  setView('add')
-  try {
-    const base64 = await new Promise((res, rej) => {
-      const reader = new FileReader()
-      reader.onload = () => {
-        console.log('Base64 length:', reader.result?.length)
-        res(reader.result.split(',')[1])
-      }
-      reader.onerror = (err) => {
-        console.log('FileReader error:', err)
-        rej(err)
-      }
-      reader.readAsDataURL(file)
-    })
-    console.log('Sending to API, base64 length:', base64?.length)
-    const result = await analyzeFood(
-      `Analyze this food image and return ONLY a JSON object with these exact fields:
+  const handlePhotoScan = async () => {
+    try {
+      setScanning(true)
+      setView('add')
+
+      const image = await Camera.getPhoto({
+        quality: 90,
+        allowEditing: false,
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Prompt,
+      })
+
+      const base64 = image.base64String
+
+      const result = await analyzeFood(
+        `Analyze this food image and return ONLY a JSON object with these exact fields:
 {
   "food_name": "specific food name",
   "portion_size": "estimated portion (e.g. 1 cup, 200g, 1 medium)",
@@ -239,16 +228,16 @@ export default function Nutrition({ user }) {
   "vitamins": { "vitamin_a": "percent daily value", "vitamin_c": "percent daily value", "vitamin_d": "percent daily value", "calcium": "percent daily value", "iron": "percent daily value" }
 }
 Return only the JSON, no other text.`,
-      base64
-    )
-    console.log('API result:', result)
-    setScannedResult({ ...result, scan_method: 'photo' })
-  } catch (err) {
-    console.log('Full error:', err)
-    alert('Error: ' + err.message)
+        base64
+      )
+      setScannedResult({ ...result, scan_method: 'photo' })
+    } catch (err) {
+      if (err.message !== 'User cancelled photos app') {
+        alert('Could not identify food. Try again or use text search.')
+      }
+    }
+    setScanning(false)
   }
-  setScanning(false)
-}
 
   const handleTextSearch = async () => {
     if (!searchQuery.trim()) return
@@ -411,8 +400,7 @@ Return only the JSON, no other text.`
 
           <div style={{ background: '#0d1520', borderRadius: '14px', padding: '16px', marginBottom: '12px', border: '0.5px solid #1e2a3a' }}>
             <p style={{ color: '#4a6080', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>Scan Food Photo</p>
-            <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoScan} style={{ display: 'none' }} />
-            <button onClick={() => fileRef.current.click()} disabled={scanning} style={{ width: '100%', padding: '14px', background: scanning ? '#1e2a3a' : '#0ea5e915', border: '1px dashed #0ea5e9', borderRadius: '12px', color: scanning ? '#4a6080' : '#0ea5e9', fontSize: '15px', fontWeight: '600', cursor: scanning ? 'not-allowed' : 'pointer' }}>
+            <button onClick={handlePhotoScan} disabled={scanning} style={{ width: '100%', padding: '14px', background: scanning ? '#1e2a3a' : '#0ea5e915', border: '1px dashed #0ea5e9', borderRadius: '12px', color: scanning ? '#4a6080' : '#0ea5e9', fontSize: '15px', fontWeight: '600', cursor: scanning ? 'not-allowed' : 'pointer' }}>
               {scanning ? 'Analyzing photo...' : '📷 Take Photo or Upload'}
             </button>
           </div>
@@ -521,7 +509,7 @@ Return only the JSON, no other text.`
 
           <div style={{ background: '#0d1520', borderRadius: '16px', padding: '20px', marginBottom: '12px', border: '0.5px solid #1e2a3a' }}>
             <p style={{ color: '#4a6080', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 6px' }}>Daily Targets</p>
-            <p style={{ color: '#4a6080', fontSize: '12px', margin: '0 0 16px' }}>AI suggested — adjust as needed</p>
+            <p style={{ color: '#4a6080', fontSize: '12px', margin: '0 0 16px' }}>AI suggested - adjust as needed</p>
             {[
               { key: 'calories', label: 'Calories', unit: 'kcal', color: '#f0f6ff' },
               { key: 'protein', label: 'Protein', unit: 'g', color: '#0ea5e9' },
