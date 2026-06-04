@@ -22,7 +22,6 @@ import TermsOfService from './screens/TermsOfService'
 import NotificationSetup from './screens/NotificationSetup'
 import { registerServiceWorker } from './notifications'
 import { Home as HomeIcon, ClipboardList, Apple, FlaskConical, ShoppingBag, User, Brain } from 'lucide-react'
-import { Browser } from '@capacitor/browser'
 
 const navItems = [
   { key: 'home', label: 'Home', icon: HomeIcon },
@@ -33,6 +32,22 @@ const navItems = [
   { key: 'shop', label: 'Shop', icon: ShoppingBag },
   { key: 'profile', label: 'Profile', icon: User },
 ]
+
+const openBrowser = async (url) => {
+  try {
+    const { Browser } = await import('@capacitor/browser')
+    await Browser.open({ url })
+  } catch {
+    window.open(url, '_blank')
+  }
+}
+
+const closeBrowser = async () => {
+  try {
+    const { Browser } = await import('@capacitor/browser')
+    await Browser.close()
+  } catch {}
+}
 
 function Auth() {
   const toast = useToast()
@@ -52,7 +67,7 @@ function Auth() {
         }
       })
       if (error) { toast(error.message, 'error'); return }
-      await Browser.open({ url: data.url })
+      await openBrowser(data.url)
     } catch (err) {
       toast(err.message, 'error')
     }
@@ -60,22 +75,17 @@ function Auth() {
 
   const handleAppleLogin = async () => {
     try {
-      const { SignInWithApple } = await import('@capgo/capacitor-sign-in-with-apple')
-      const result = await SignInWithApple.authorize({
-        clientId: 'com.jacobhammers.recoverylog.siwa',
-        redirectURI: 'https://agwzcqqalhpdedbjkfgw.supabase.co/auth/v1/callback',
-        scopes: 'email name',
-      })
-      const { identityToken } = result.response
-      const { error } = await supabase.auth.signInWithIdToken({
+      const { data, error } = await supabase.auth.signInWithOAuth({
         provider: 'apple',
-        token: identityToken,
+        options: {
+          redirectTo: 'recoverylog://login',
+          skipBrowserRedirect: true,
+        }
       })
-      if (error) toast(error.message, 'error')
+      if (error) { toast(error.message, 'error'); return }
+      await openBrowser(data.url)
     } catch (err) {
-      if (!err.message?.includes('1001')) {
-        toast('Apple Sign In failed. Please try again.', 'error')
-      }
+      toast(err.message, 'error')
     }
   }
 
@@ -282,7 +292,7 @@ function AppContent() {
       try {
         const { App: CapApp } = await import('@capacitor/app')
         CapApp.addListener('appUrlOpen', async ({ url }) => {
-          await Browser.close()
+          await closeBrowser()
           const hashPart = url.split('#')[1] || url.split('?')[1] || ''
           const params = new URLSearchParams(hashPart)
           const accessToken = params.get('access_token')
