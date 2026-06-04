@@ -60,7 +60,7 @@ function Auth() {
 
   const handleAppleLogin = async () => {
     try {
-      const { SignInWithApple } = await import('@capacitor/sign-in-with-apple')
+      const { SignInWithApple } = await import('@capgo/capacitor-sign-in-with-apple')
       const result = await SignInWithApple.authorize({
         clientId: 'com.jacobhammers.recoverylog.siwa',
         redirectURI: 'https://agwzcqqalhpdedbjkfgw.supabase.co/auth/v1/callback',
