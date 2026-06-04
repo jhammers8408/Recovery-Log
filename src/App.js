@@ -74,7 +74,9 @@ function Auth() {
   }
 
   const handleAppleLogin = async () => {
+  console.log('handleAppleLogin called')
   try {
+    console.log('trying apple sign in')
     const { SignInWithApple } = await import('@capacitor-community/apple-sign-in')
     
     const result = await SignInWithApple.authorize({

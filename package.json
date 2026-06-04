@@ -48,12 +48,10 @@
     ]
   },
   "browser": {
-    "@capacitor-community/apple-sign-in": false,
-    "@capacitor/camera": false,
-    "@capacitor/push-notifications": false,
-    "@capacitor/browser": false,
-    "@capacitor/app": false
-  },
+  "@capacitor-community/apple-sign-in": false,
+  "@capacitor/camera": false,
+  "@capacitor/push-notifications": false
+},
   "devDependencies": {
     "@capacitor/assets": "^3.0.5"
   }
