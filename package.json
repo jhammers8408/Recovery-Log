@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@capacitor-community/apple-sign-in": "^7.1.0",
     "@capacitor/app": "^8.1.0",
     "@capacitor/browser": "^8.0.3",
     "@capacitor/camera": "^8.2.0",
@@ -15,7 +16,6 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^13.5.0",
-    "capacitor-sign-in-with-apple": "^0.0.1",
     "lucide-react": "^1.17.0",
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
@@ -48,14 +48,12 @@
     ]
   },
   "browser": {
-  "@capacitor/sign-in-with-apple": false,
-  "@capgo/capacitor-sign-in-with-apple": false,
-  "capacitor-sign-in-with-apple": false,
-  "@capacitor/camera": false,
-  "@capacitor/push-notifications": false,
-  "@capacitor/browser": false,
-  "@capacitor/app": false
-},
+    "@capacitor-community/apple-sign-in": false,
+    "@capacitor/camera": false,
+    "@capacitor/push-notifications": false,
+    "@capacitor/browser": false,
+    "@capacitor/app": false
+  },
   "devDependencies": {
     "@capacitor/assets": "^3.0.5"
   }

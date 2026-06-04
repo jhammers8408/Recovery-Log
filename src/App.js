@@ -75,7 +75,8 @@ function Auth() {
 
   const handleAppleLogin = async () => {
   try {
-    const { SignInWithApple } = await import('capacitor-sign-in-with-apple')
+    const { SignInWithApple } = await import('@capacitor-community/apple-sign-in')
+    
     const result = await SignInWithApple.authorize({
       clientId: 'com.jacobhammers.recoverylog',
       redirectURI: 'https://agwzcqqalhpdedbjkfgw.supabase.co/auth/v1/callback',
@@ -83,8 +84,10 @@ function Auth() {
       state: '12345',
       nonce: 'nonce',
     })
+
     console.log('Apple result:', JSON.stringify(result))
     const { identityToken } = result.response
+
     const { error } = await supabase.auth.signInWithIdToken({
       provider: 'apple',
       token: identityToken,
