@@ -69,5 +69,7 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>RecoveryLog accesses your photos to scan food for nutrition data</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>RecoveryLog saves food scan images to your photo library</string>
 </dict>
 </plist>
