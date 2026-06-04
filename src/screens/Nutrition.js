@@ -411,7 +411,7 @@ Return only the JSON, no other text.`
 
           <div style={{ background: '#0d1520', borderRadius: '14px', padding: '16px', marginBottom: '12px', border: '0.5px solid #1e2a3a' }}>
             <p style={{ color: '#4a6080', fontSize: '11px', textTransform: 'uppercase', letterSpacing: '1px', margin: '0 0 12px' }}>Scan Food Photo</p>
-            <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={handlePhotoScan} style={{ display: 'none' }} />
+            <input ref={fileRef} type="file" accept="image/*" onChange={handlePhotoScan} style={{ display: 'none' }} />
             <button onClick={() => fileRef.current.click()} disabled={scanning} style={{ width: '100%', padding: '14px', background: scanning ? '#1e2a3a' : '#0ea5e915', border: '1px dashed #0ea5e9', borderRadius: '12px', color: scanning ? '#4a6080' : '#0ea5e9', fontSize: '15px', fontWeight: '600', cursor: scanning ? 'not-allowed' : 'pointer' }}>
               {scanning ? 'Analyzing photo...' : '📷 Take Photo or Upload'}
             </button>
