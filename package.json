@@ -48,6 +48,7 @@
   },
   "browser": {
   "@capacitor/camera": false,
+  "@capacitor/push-notifications": false,
   "@revenuecat/purchases-capacitor": false
 },
   "devDependencies": {

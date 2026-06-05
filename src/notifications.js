@@ -1,29 +1,9 @@
-import { PushNotifications } from '@capacitor/push-notifications'
-
 export const registerForPushNotifications = async () => {
   try {
+    const { PushNotifications } = await import('@capacitor/push-notifications')
     const permission = await PushNotifications.requestPermissions()
-    
     if (permission.receive === 'granted') {
       await PushNotifications.register()
-      
-      PushNotifications.addListener('registration', token => {
-        console.log('Push token:', token.value)
-        localStorage.setItem('push_token', token.value)
-      })
-
-      PushNotifications.addListener('registrationError', err => {
-        console.log('Push registration error:', err)
-      })
-
-      PushNotifications.addListener('pushNotificationReceived', notification => {
-        console.log('Notification received:', notification)
-      })
-
-      PushNotifications.addListener('pushNotificationActionPerformed', action => {
-        console.log('Notification tapped:', action)
-      })
-
       return true
     }
     return false
@@ -48,6 +28,5 @@ export const requestNotificationPermission = async () => {
 }
 
 export const scheduleNotifications = async () => {
-  // Notifications are handled server-side for native apps
   return true
 }
