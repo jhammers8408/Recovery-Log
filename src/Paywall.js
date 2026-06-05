@@ -1,6 +1,12 @@
 import React, { useState } from 'react'
 import { supabase } from './supabase'
 
+const REVENUECAT_API_KEY = 'appl_kbFvYvgXCBvYkQYxRzLPxXCVWhc'
+
+const isNative = () => {
+  return window.Capacitor?.isNativePlatform?.() || false
+}
+
 export default function Paywall({ feature, onClose }) {
   const [loading, setLoading] = useState(false)
 
@@ -42,12 +48,53 @@ export default function Paywall({ feature, onClose }) {
 
   const content = features[feature] || features.ai_insights
 
-  const handleUpgrade = async () => {
-    setLoading(true)
+  const handleNativePurchase = async () => {
+    try {
+      const { Purchases, LOG_LEVEL } = await import('@revenuecat/purchases-capacitor')
+      await Purchases.setLogLevel({ level: LOG_LEVEL.DEBUG })
+      await Purchases.configure({ apiKey: REVENUECAT_API_KEY })
+
+      const { current: currentUser } = await supabase.auth.getUser()
+      if (currentUser?.data?.user?.id) {
+        await Purchases.logIn({ appUserID: currentUser.data.user.id })
+      }
+
+      const offerings = await Purchases.getOfferings()
+      console.log('Offerings:', JSON.stringify(offerings))
+
+      const currentOffering = offerings.current
+      if (!currentOffering || !currentOffering.availablePackages.length) {
+        alert('No subscription available. Please try again later.')
+        return
+      }
+
+      const packageToPurchase = currentOffering.availablePackages[0]
+      const { customerInfo } = await Purchases.purchasePackage({ aPackage: packageToPurchase })
+
+      if (typeof customerInfo.entitlements.active['pro'] !== 'undefined') {
+        // Save to Supabase too
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        if (currentUser) {
+          await supabase.from('subscriptions').upsert({
+            user_id: currentUser.id,
+            status: 'active',
+            updated_at: new Date().toISOString(),
+          }, { onConflict: 'user_id' })
+        }
+        alert('Welcome to Pro!')
+        onClose()
+      }
+    } catch (err) {
+      console.log('Purchase error:', err.message)
+      if (!err.message?.includes('userCancelled') && !err.message?.includes('cancelled')) {
+        alert('Purchase failed. Please try again.')
+      }
+    }
+  }
+
+  const handleWebPurchase = async () => {
     try {
       const { data: { user: currentUser } } = await supabase.auth.getUser()
-      console.log('User:', currentUser?.id, currentUser?.email)
-
       const response = await fetch('https://recovery-log-gamma.vercel.app/api/create-checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -56,20 +103,23 @@ export default function Paywall({ feature, onClose }) {
           email: currentUser.email,
         })
       })
-
-      console.log('Response status:', response.status)
       const data = await response.json()
-      console.log('Response data:', JSON.stringify(data))
-
       if (data.url) {
-        const { Browser } = await import('@capacitor/browser')
-        await Browser.open({ url: data.url })
+        window.open(data.url, '_blank')
       } else {
         alert('Something went wrong. Please try again.')
       }
     } catch (err) {
-      console.log('Catch error:', err.message)
       alert('Something went wrong. Please try again.')
+    }
+  }
+
+  const handleUpgrade = async () => {
+    setLoading(true)
+    if (isNative()) {
+      await handleNativePurchase()
+    } else {
+      await handleWebPurchase()
     }
     setLoading(false)
   }

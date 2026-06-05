@@ -1,6 +1,12 @@
 import { useState, useEffect } from 'react'
 import { supabase } from './supabase'
 
+const REVENUECAT_API_KEY = 'appl_kbFvYvgXCBvYkQYxRzLPxXCVWhc'
+
+const isNative = () => {
+  return window.Capacitor?.isNativePlatform?.() || false
+}
+
 export function useProStatus(user) {
   const [isPro, setIsPro] = useState(false)
   const [experimentCount, setExperimentCount] = useState(0)
@@ -21,7 +27,30 @@ export function useProStatus(user) {
 
     setExperimentCount(expCount || 0)
     setAiGenerationCount(aiCount || 0)
-    setIsPro(subData?.status === 'active')
+
+    // Check Supabase subscription first (web purchases via Stripe)
+    if (subData?.status === 'active') {
+      setIsPro(true)
+      setLoading(false)
+      return
+    }
+
+    // Check RevenueCat for native iOS purchases
+    if (isNative()) {
+      try {
+        const { Purchases } = await import('@revenuecat/purchases-capacitor')
+        await Purchases.configure({ apiKey: REVENUECAT_API_KEY })
+        await Purchases.logIn({ appUserID: user.id })
+        const { customerInfo } = await Purchases.getCustomerInfo()
+        setIsPro(typeof customerInfo.entitlements.active['pro'] !== 'undefined')
+      } catch (err) {
+        console.log('RevenueCat error:', err.message)
+        setIsPro(false)
+      }
+    } else {
+      setIsPro(false)
+    }
+
     setLoading(false)
   }
 

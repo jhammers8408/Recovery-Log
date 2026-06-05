@@ -9,6 +9,7 @@
     "@capacitor/cli": "^8.3.4",
     "@capacitor/core": "^8.3.4",
     "@capacitor/ios": "^8.3.4",
+    "@revenuecat/purchases-capacitor": "^13.1.5",
     "@supabase/supabase-js": "^2.106.2",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
@@ -46,10 +47,9 @@
     ]
   },
   "browser": {
-    "@capacitor-community/apple-sign-in": false,
-    "@capacitor/camera": false,
-    "@capacitor/push-notifications": false
-  },
+  "@capacitor/camera": false,
+  "@revenuecat/purchases-capacitor": false
+},
   "devDependencies": {
     "@capacitor/assets": "^3.0.5"
   }
